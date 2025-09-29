@@ -1,0 +1,250 @@
+import React, { useState } from "react";
+import {
+  Layout,
+  Card,
+  Row,
+  Col,
+  Tag,
+  Typography,
+  Button,
+  Modal,
+  QRCode,
+} from "antd";
+import {
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  CalendarOutlined,
+  QrcodeOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
+
+const { Content } = Layout;
+const { Title, Text } = Typography;
+
+type TableStatus = "available" | "occupied" | "reserved";
+
+interface TableData {
+  id: number;
+  seats: number;
+  status: TableStatus;
+  reservedTime?: string;
+}
+
+const initialTables: TableData[] = [
+  { id: 1, seats: 2, status: "available" },
+  { id: 2, seats: 4, status: "occupied" },
+  { id: 3, seats: 6, status: "reserved", reservedTime: "7:30 PM" },
+  { id: 4, seats: 4, status: "available" },
+  { id: 5, seats: 8, status: "occupied" },
+  { id: 6, seats: 2, status: "available" },
+  { id: 7, seats: 4, status: "reserved", reservedTime: "7:30 PM" },
+  { id: 8, seats: 6, status: "available" },
+];
+
+export default function TableManagementPage() {
+  const [tables] = useState<TableData[]>(initialTables);
+  const [filter, setFilter] = useState<"all" | TableStatus>("all");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
+
+  const filteredTables =
+    filter === "all" ? tables : tables.filter((t) => t.status === filter);
+
+  const total = tables.length;
+  const availableCount = tables.filter((t) => t.status === "available").length;
+  const occupiedCount = tables.filter((t) => t.status === "occupied").length;
+  const reservedCount = tables.filter((t) => t.status === "reserved").length;
+
+  const getStatusTag = (status: TableStatus) => {
+    switch (status) {
+      case "available":
+        return (
+          <Tag color="green" icon={<CheckCircleOutlined />}>
+            Available
+          </Tag>
+        );
+      case "occupied":
+        return (
+          <Tag color="red" icon={<CloseCircleOutlined />}>
+            Occupied
+          </Tag>
+        );
+      case "reserved":
+        return (
+          <Tag color="blue" icon={<CalendarOutlined />}>
+            Reserved
+          </Tag>
+        );
+    }
+  };
+
+  const getBorderColor = (status: TableStatus) => {
+    switch (status) {
+      case "available":
+        return "1px solid #95de64";
+      case "occupied":
+        return "1px solid #ff7875";
+      case "reserved":
+        return "1px solid #69c0ff";
+    }
+  };
+
+  const handleGenerateQRCode = (table: TableData) => {
+    setSelectedTable(table);
+    setModalVisible(true);
+  };
+
+  return (
+    <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
+      <Content style={{ margin: "0 10rem", paddingTop: "2rem" }}>
+        {/* Title */}
+        <Title level={2} style={{ fontSize: 32, marginBottom: 4 }}>
+          Table Management
+        </Title>
+        <Text type="secondary">Monitor and manage restaurant tables</Text>
+
+        {/* Summary */}
+        <Row gutter={[24, 24]} style={{ marginTop: "2rem" }}>
+          {[
+            { label: "Total Tables", value: total, color: "#111827" },
+            { label: "Available", value: availableCount, color: "green" },
+            { label: "Occupied", value: occupiedCount, color: "red" },
+            { label: "Reserved", value: reservedCount, color: "blue" },
+          ].map((stat) => (
+            <Col xs={24} sm={12} md={6} key={stat.label}>
+              <Card style={{ borderRadius: 12, height: 120 }}>
+                <Text>{stat.label}</Text>
+                <Title level={2} style={{ marginTop: 4, color: stat.color }}>
+                  {stat.value}
+                </Title>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+
+        {/* Filter Buttons */}
+        <div style={{ marginTop: "2rem", display: "flex", gap: 12 }}>
+          {[
+            { label: "All Tables", value: "all" },
+            { label: "Available", value: "available" },
+            { label: "Occupied", value: "occupied" },
+            { label: "Reserved", value: "reserved" },
+          ].map((opt) => (
+            <Button
+              key={opt.value}
+              type={filter === opt.value ? "primary" : "default"}
+              onClick={() => setFilter(opt.value as any)}
+              style={{
+                borderRadius: 20,
+                background: filter === opt.value ? "#111827" : "#fff",
+                color: filter === opt.value ? "#fff" : "#6B7280",
+                border: "1px solid #d1d5db",
+                fontSize: 16,
+                height: 40,
+                padding: "0 20px",
+              }}
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Tables Grid */}
+        <Row gutter={[16, 16]} style={{ marginTop: "1.5rem" }}>
+          {filteredTables.map((table) => (
+            <Col xs={24} sm={12} md={8} lg={6} key={table.id}>
+              <Card
+                style={{
+                  border: getBorderColor(table.status),
+                  borderRadius: 12,
+                  height: 220,
+                  textAlign: "left",
+                }}
+                bodyStyle={{
+                  padding: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  height: "100%",
+                }}
+              >
+                {/* Table Info */}
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Title level={5} style={{ margin: 0, fontWeight: "bold" }}>
+                      Table {table.id}
+                    </Title>
+                    {getStatusTag(table.status)}
+                  </div>
+
+                  <Text style={{ display: "block", marginTop: 8 }}>
+                    <TeamOutlined /> {table.seats} seats
+                  </Text>
+                  <Text style={{ display: "block", marginTop: 4 }}>
+                    <QrcodeOutlined /> QR Code
+                  </Text>
+                  {table.status === "reserved" && (
+                    <Text
+                      type="secondary"
+                      style={{ display: "block", marginTop: 8 }}
+                    >
+                      Reserved for {table.reservedTime}
+                    </Text>
+                  )}
+                </div>
+
+                {/* Generate QR Code Button */}
+                <Button
+                  block
+                  style={{
+                    marginTop: "auto",
+                    backgroundColor: "#1c1919ff",
+                    color: "#fff",
+                    borderRadius: 8,
+                    border: "none",
+                  }}
+                  onClick={() => handleGenerateQRCode(table)}
+                >
+                  Generate QR Code
+                </Button>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+
+        {/* Modal for QR Code */}
+        <Modal
+          open={modalVisible}
+          onCancel={() => setModalVisible(false)}
+          footer={null}
+          centered
+          bodyStyle={{
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+          width={400} // ขนาดใหญ่ขึ้น
+          maskStyle={{ backdropFilter: "blur(8px)" }} // เบลอพื้นหลัง
+        >
+          {selectedTable && (
+            <>
+              <Title level={3} style={{ marginBottom: 24 }}>
+                Table {selectedTable.id} QR Code
+              </Title>
+              <QRCode
+                value={`https://example.com/table/${selectedTable.id}`}
+                size={250} // ขนาดใหญ่
+              />
+            </>
+          )}
+        </Modal>
+      </Content>
+    </Layout>
+  );
+}

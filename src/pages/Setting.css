@@ -1,0 +1,31 @@
+/* Billing.css */
+.custom-tabs .ant-tabs-nav {
+  margin: 16px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #d9d9d9;
+}
+
+.custom-tabs .ant-tabs-nav-list {
+  width: 100%;
+  display: flex;
+}
+
+.custom-tabs .ant-tabs-tab {
+  flex: 1;
+  justify-content: center;
+  text-align: center;
+  background: #f0f0f0;
+  margin: 0 !important;
+  font-weight: 500;
+  transition: all 0.3s;
+  padding: 5px 0;
+}
+
+.custom-tabs .ant-tabs-tab-active {
+  background: #fff !important;
+}
+
+.custom-tabs .ant-tabs-ink-bar {
+  display: none !important; /* ซ่อนเส้นใต้ของ Ant Design */
+}
