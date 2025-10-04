@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./ืnav.css";
+import "./nav.css";
 import ExitIcon from "../assets/logout_24dp_4B5563_FILL0_wght400_GRAD0_opsz24.svg";
 import DashboardIcon from "../assets/dashboard_24dp_4B5563_FILL0_wght400_GRAD0_opsz24.svg";
 import OrderIcon from "../assets/receipt_24dp_4B5563_FILL0_wght400_GRAD0_opsz24.svg";
