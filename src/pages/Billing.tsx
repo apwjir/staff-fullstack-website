@@ -13,74 +13,94 @@ import {
   message,
   Layout,
 } from "antd";
+import { type TableData } from "./Dashboard";
 
 const { Title, Text } = Typography;
 
 interface Bill {
   id: number;
-  table: string;
-  status: "Paid" | "Unpaid";
-  items: number;
+  tableId: number;
+  isPaid: boolean;
   createdAt: string;
   paidAt?: string;
-  total: number;
+  totalAmount: number;
 }
 
 const initialBills: Bill[] = [
   {
     id: 2,
-    table: "Table 2",
-    status: "Unpaid",
-    items: 3,
+    tableId: 2,
+    isPaid: false,
     createdAt: "1/16/2024, 2:30:00 AM",
-    total: 56.12,
+    totalAmount: 56.12,
   },
   {
     id: 5,
-    table: "Table 5",
-    status: "Paid",
-    items: 2,
+    tableId: 5,
+    isPaid: true,
     createdAt: "1/16/2024, 2:15:00 AM",
     paidAt: "1/16/2024, 3:30:00 AM",
-    total: 46.41,
+    totalAmount: 46.41,
   },
   {
     id: 7,
-    table: "Table 7",
-    status: "Unpaid",
-    items: 2,
+    tableId: 7,
+    isPaid: false,
     createdAt: "1/16/2024, 2:00:00 AM",
-    total: 24.82,
+    totalAmount: 24.82,
   },
+];
+
+const initialTables: TableData[] = [
+  { id: 1, seats: 2, status: "available" },
+  { id: 2, seats: 4, status: "occupied" },
+  { id: 3, seats: 6, status: "reserved", reservedTime: "7:30 PM" },
+  { id: 4, seats: 4, status: "available" },
+  { id: 5, seats: 8, status: "occupied" },
+  { id: 6, seats: 2, status: "available" },
+  { id: 7, seats: 4, status: "reserved", reservedTime: "7:30 PM" },
+  { id: 8, seats: 6, status: "available" },
 ];
 
 const BillingPage: React.FC = () => {
   const [bills, setBills] = useState<Bill[]>(initialBills);
   const [filter, setFilter] = useState<"All" | "Paid" | "Unpaid">("All");
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+  const [tables, setTables] = useState<TableData[]>(initialTables);
 
   const filteredBills = bills.filter(
-    (bill) => filter === "All" || bill.status === filter
+    (bill) =>
+      filter === "All" ||
+      (filter === "Paid" && bill.isPaid) ||
+      (filter === "Unpaid" && !bill.isPaid)
   );
 
   const totalBills = bills.length;
-  const unpaidBills = bills.filter((b) => b.status === "Unpaid").length;
-  const paidBills = bills.filter((b) => b.status === "Paid").length;
+  const unpaidBills = bills.filter((b) => !b.isPaid).length;
+  const paidBills = bills.filter((b) => b.isPaid).length;
   const revenueToday = bills
-    .filter((b) => b.status === "Paid")
-    .reduce((acc, b) => acc + b.total, 0);
+    .filter((b) => b.isPaid)
+    .reduce((acc, b) => acc + b.totalAmount, 0);
 
   const handleCloseBill = (billId: number) => {
     const now = new Date().toLocaleString();
     setBills((prev) =>
       prev.map((b) =>
-        b.id === billId ? { ...b, status: "Paid", paidAt: now } : b
+        b.id === billId ? { ...b, isPaid: true, paidAt: now } : b
       )
     );
     if (selectedBill?.id === billId) {
-      setSelectedBill({ ...selectedBill, status: "Paid", paidAt: now });
+      setSelectedBill({ ...selectedBill, isPaid: true, paidAt: now });
     }
     message.success("Bill closed successfully ✅");
+  };
+
+  const setAvailableStatus = (id: number) => {
+    setTables((prev) =>
+      prev.map((table) =>
+        table.id === id ? { ...table, status: "available" } : table
+      )
+    );
   };
 
   return (
@@ -166,25 +186,22 @@ const BillingPage: React.FC = () => {
                     >
                       <Space direction="vertical" size={4}>
                         <Space>
-                          <Text strong>{bill.table}</Text>
+                          <Text strong>Table {bill.tableId}</Text>
                           <Tag
                             bordered={false}
-                            color={bill.status === "Paid" ? "green" : "red"}
+                            color={bill.isPaid ? "green" : "red"}
                           >
-                            {bill.status}
+                            {bill.isPaid ? "Paid" : "Unpaid"}
                           </Tag>
                         </Space>
-                        <Text type="secondary" style={{ fontSize: 13 }}>
-                          {bill.items} items • {bill.createdAt}
-                        </Text>
-                        {bill.status === "Paid" && bill.paidAt && (
+                        {bill.isPaid && bill.paidAt && (
                           <Text type="success" style={{ fontSize: 13 }}>
                             ✅ Paid at {bill.paidAt}
                           </Text>
                         )}
                       </Space>
                       <Text strong style={{ fontSize: 15 }}>
-                        ${bill.total.toFixed(2)}
+                        ${bill.totalAmount.toFixed(2)}
                       </Text>
                     </Space>
                   </Card>
@@ -219,9 +236,10 @@ const BillingPage: React.FC = () => {
                   >
                     <div>
                       <Title level={4}>
-                        {selectedBill.table} - {selectedBill.status}
+                        Table {selectedBill.tableId} -{" "}
+                        {selectedBill.isPaid ? "Paid" : "Unpaid"}
                       </Title>
-                      <Text>Total: ${selectedBill.total.toFixed(2)}</Text>
+                      <Text>Total: ${selectedBill.totalAmount.toFixed(2)}</Text>
                       <br />
                       <Text>Created: {selectedBill.createdAt}</Text>
                       {selectedBill.paidAt && (
@@ -238,11 +256,14 @@ const BillingPage: React.FC = () => {
                     />
                   </div>
 
-                  {selectedBill.status === "Unpaid" && (
+                  {!selectedBill.isPaid && (
                     <div style={{ marginTop: "16px", textAlign: "left" }}>
                       <Button
                         type="primary"
-                        onClick={() => handleCloseBill(selectedBill.id)}
+                        onClick={() => {
+                          handleCloseBill(selectedBill.id);
+                          setAvailableStatus(selectedBill.id);
+                        }}
                         style={{
                           backgroundColor: "#000000",
                           color: "#ffffff",

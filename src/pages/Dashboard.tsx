@@ -21,16 +21,17 @@ import {
 const { Content } = Layout;
 const { Title, Text } = Typography;
 
-type TableStatus = "available" | "occupied" | "reserved";
+export type TableStatus = "available" | "occupied" | "reserved";
 
-interface TableData {
+export interface Table {
   id: number;
   seats: number;
   status: TableStatus;
   reservedTime?: string;
+  qrCodeToken?: string; // ✅ optional เพราะตอนเริ่มยังไม่มี
 }
 
-const initialTables: TableData[] = [
+const initialTables: Table[] = [
   { id: 1, seats: 2, status: "available" },
   { id: 2, seats: 4, status: "occupied" },
   { id: 3, seats: 6, status: "reserved", reservedTime: "7:30 PM" },
@@ -42,10 +43,10 @@ const initialTables: TableData[] = [
 ];
 
 export default function TableManagementPage() {
-  const [tables] = useState<TableData[]>(initialTables);
+  const [tables, setTables] = useState<Table[]>(initialTables);
   const [filter, setFilter] = useState<"all" | TableStatus>("all");
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
 
   const filteredTables =
     filter === "all" ? tables : tables.filter((t) => t.status === filter);
@@ -89,15 +90,26 @@ export default function TableManagementPage() {
     }
   };
 
-  const handleGenerateQRCode = (table: TableData) => {
-    setSelectedTable(table);
+  /** ✅ สร้าง QR Code + Token */
+  const handleGenerateQRCode = (table: Table) => {
+    // สร้าง token แบบ random
+    const token = crypto.randomUUID(); // ใช้ Math.random().toString(36).slice(2) ได้เหมือนกัน
+
+    // อัปเดต table ใน state
+    setTables((prev) =>
+      prev.map((t) =>
+        t.id === table.id ? { ...t, qrCodeToken: token, status: "occupied" } : t
+      )
+    );
+
+    // เปิด modal พร้อม table ที่มี token ใหม่
+    setSelectedTable({ ...table, qrCodeToken: token });
     setModalVisible(true);
   };
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
       <Content style={{ margin: "0 10rem", paddingTop: "2rem" }}>
-        {/* Title */}
         <Title level={2} style={{ fontSize: 32, marginBottom: 4 }}>
           Table Management
         </Title>
@@ -167,7 +179,6 @@ export default function TableManagementPage() {
                   height: "100%",
                 }}
               >
-                {/* Table Info */}
                 <div style={{ flex: 1 }}>
                   <div
                     style={{
@@ -198,7 +209,6 @@ export default function TableManagementPage() {
                   )}
                 </div>
 
-                {/* Generate QR Code Button */}
                 <Button
                   block
                   style={{
@@ -217,7 +227,7 @@ export default function TableManagementPage() {
           ))}
         </Row>
 
-        {/* Modal for QR Code */}
+        {/* QR Modal */}
         <Modal
           open={modalVisible}
           onCancel={() => setModalVisible(false)}
@@ -229,8 +239,8 @@ export default function TableManagementPage() {
             flexDirection: "column",
             alignItems: "center",
           }}
-          width={400} // ขนาดใหญ่ขึ้น
-          maskStyle={{ backdropFilter: "blur(8px)" }} // เบลอพื้นหลัง
+          width={400}
+          maskStyle={{ backdropFilter: "blur(8px)" }}
         >
           {selectedTable && (
             <>
@@ -238,9 +248,15 @@ export default function TableManagementPage() {
                 Table {selectedTable.id} QR Code
               </Title>
               <QRCode
-                value={`https://example.com/table/${selectedTable.id}`}
-                size={250} // ขนาดใหญ่
+                value={`https://example.com/table/${selectedTable.id}?token=${selectedTable.qrCodeToken}`}
+                size={250}
               />
+              <Text
+                type="secondary"
+                style={{ marginTop: 12, wordBreak: "break-all" }}
+              >
+                Token: {selectedTable.qrCodeToken}
+              </Text>
             </>
           )}
         </Modal>

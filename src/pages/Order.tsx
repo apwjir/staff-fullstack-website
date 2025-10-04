@@ -10,38 +10,114 @@ const { Content } = Layout;
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-interface OrderItem {
+export interface MenuItem {
+  id: number;
   name: string;
-  qty: number;
+  price: number;
+  foodtype: string;
+  description: string;
+  isAvailable: boolean;
+}
+
+interface OrderItem {
+  id: number;
+  orderId: number;
+  menuItemId: number;
+  quantity: number;
+  note?: string;
+  menuItem?: MenuItem; // optional: join menu info
 }
 
 interface Order {
   id: number;
-  table: number;
-  time: string;
+  tableId: number;
+  sessionId: string;
   status: "waiting" | "cooking" | "done";
+  createdAt: string;
+  updatedAt: string;
+  queuePos: number;
+  billId?: number;
   items: OrderItem[];
 }
 
 const initialOrders: Order[] = [
   {
     id: 1,
-    table: 2,
-    time: "02:30 AM",
+    tableId: 2,
+    sessionId: "sess-001",
     status: "waiting",
+    createdAt: "2025-10-04T02:30:00Z",
+    updatedAt: "2025-10-04T02:30:00Z",
+    queuePos: 1,
     items: [
-      { name: "Margherita Pizza", qty: 1 },
-      { name: "Caesar Salad", qty: 2 },
+      {
+        id: 1,
+        orderId: 1,
+        menuItemId: 101,
+        quantity: 1,
+        menuItem: {
+          id: 101,
+          name: "Margherita Pizza",
+          price: 250,
+          foodtype: "main",
+          description: "Classic pizza with tomato & mozzarella",
+          isAvailable: true,
+        },
+      },
+      {
+        id: 2,
+        orderId: 1,
+        menuItemId: 102,
+        quantity: 2,
+        menuItem: {
+          id: 102,
+          name: "Caesar Salad",
+          price: 120,
+          foodtype: "appetizer",
+          description: "Fresh romaine with Caesar dressing",
+          isAvailable: true,
+        },
+      },
     ],
   },
   {
     id: 2,
-    table: 5,
-    time: "02:15 AM",
+    tableId: 5,
+    sessionId: "sess-002",
     status: "cooking",
+    createdAt: "2025-10-04T02:15:00Z",
+    updatedAt: "2025-10-04T02:20:00Z",
+    queuePos: 2,
     items: [
-      { name: "Grilled Salmon", qty: 1 },
-      { name: "House Wine", qty: 2 },
+      {
+        id: 3,
+        orderId: 2,
+        menuItemId: 201,
+        quantity: 1,
+        note: "medium rare",
+        menuItem: {
+          id: 201,
+          name: "Grilled Salmon",
+          price: 450,
+          foodtype: "main",
+          description: "Salmon fillet grilled to perfection",
+          isAvailable: true,
+        },
+      },
+      {
+        id: 4,
+        orderId: 2,
+        menuItemId: 202,
+        quantity: 2,
+        menuItem: {
+          id: 202,
+          name: "House Wine",
+          price: 180,
+          foodtype: "beverage",
+          description: "Red wine glass",
+          isAvailable: true,
+        },
+      },
     ],
   },
 ];
@@ -158,7 +234,7 @@ export default function Order() {
                 <Row justify="space-between" align="middle">
                   <Col>
                     <Title level={5} style={{ margin: 0 }}>
-                      Order #{order.id} - Table {order.table}
+                      Order #{order.id} - Table {order.tableId}
                     </Title>
                   </Col>
                   <Col>
@@ -166,21 +242,20 @@ export default function Order() {
                       style={{ display: "flex", alignItems: "center", gap: 8 }}
                     >
                       {getTag(order.status)}
-                      <Text type="secondary">{order.time}</Text>
+                      <Text type="secondary">{order.tableId}</Text>
                     </div>
                   </Col>
                 </Row>
 
                 {/* Items */}
-                <div style={{ marginTop: 12 }}>
-                  {order.items.map((item, idx) => (
-                    <Row justify="space-between" key={idx}>
-                      <Text>
-                        {item.qty} x {item.name}
-                      </Text>
-                    </Row>
-                  ))}
-                </div>
+                {order.items.map((item) => (
+                  <Row justify="space-between" key={item.id}>
+                    <Text>
+                      {item.quantity} x {item.menuItem?.name}
+                    </Text>
+                    <Text strong>{item.menuItem?.price} ฿</Text>
+                  </Row>
+                ))}
 
                 {/* Action buttons */}
                 <div
