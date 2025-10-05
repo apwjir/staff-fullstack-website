@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Layout, Card, Row, Col, Button, Tag, Typography, Select } from "antd";
+import { useState } from "react";
+import { Layout, Card, Row, Col, Button, Tag, Typography, Select, message } from "antd";
 import {
   FireOutlined,
   ClockCircleOutlined,
@@ -130,16 +130,22 @@ export default function Order() {
     id: number,
     status: "waiting" | "cooking" | "done"
   ) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === id
-          ? {
-              ...order,
-              status,
-            }
-          : order
-      )
-    );
+    try {
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === id
+            ? {
+                ...order,
+                status,
+                updatedAt: new Date().toISOString(),
+              }
+            : order
+        )
+      );
+      message.success(`Order status updated to ${status}`);
+    } catch (error) {
+      console.error("Error updating order status:", error);
+    }
   };
 
   const totalOrders = orders.length;
@@ -177,15 +183,15 @@ export default function Order() {
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
-      <Content style={{ margin: "0 10rem", paddingTop: "2rem" }}>
+      <Content style={{ margin: "0 10rem", paddingTop: "2rem" }} className="mobile-responsive-content">
         {/* Title */}
-        <Title level={2} style={{ fontSize: 32, marginBottom: 4 }}>
+        <Title level={2} style={{ fontSize: 32, marginBottom: 4 }} className="mobile-responsive-title">
           Orders Management
         </Title>
         <Text type="secondary">Track and manage all restaurant orders</Text>
 
         {/* Stats */}
-        <Row gutter={[24, 24]} style={{ marginTop: "2rem" }}>
+        <Row gutter={[24, 24]} style={{ marginTop: "2rem" }} className="mobile-responsive-stats">
           {[
             { label: "Total Orders", value: totalOrders, color: "#111827" },
             { label: "Waiting", value: waitingCount, color: "orange" },
@@ -267,7 +273,7 @@ export default function Order() {
                       key={statusKey}
                       type={order.status === statusKey ? "primary" : "default"}
                       onClick={() =>
-                        updateOrderStatus(order.id, statusKey as any)
+                        updateOrderStatus(order.id, statusKey as "waiting" | "cooking" | "done")
                       }
                       style={{
                         backgroundColor: "#000000", // พื้นหลังดำ

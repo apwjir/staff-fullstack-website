@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Card,
   Col,
@@ -15,6 +15,7 @@ import {
   Switch,
   ConfigProvider,
 } from "antd";
+import type { UploadFile } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -26,7 +27,6 @@ import {
 import "./Setting.css";
 import { type MenuItem } from "./Order";
 import { type Table } from "./Dashboard";
-import type { TableStatus } from "./Dashboard";
 
 const { Title, Text } = Typography;
 
@@ -57,15 +57,15 @@ interface Staff {
 const Setting: React.FC = () => {
   const [role] = useState("admin"); // mock role, สมมติว่าตอนนี้คือ admin
   // const [role] = useState("staff"); // mock role, สมมติว่าตอนนี้คือ staff
-  const [fileList, setFileList] = useState<any[]>([]);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [tables, setTables] = useState<Table[]>([
     { id: 1, seats: 2, status: "available" },
     { id: 2, seats: 4, status: "occupied" },
-    { id: 3, seats: 6, status: "reserved", reservedTime: "7:30 PM" },
+    { id: 3, seats: 6, status: "available" },
     { id: 4, seats: 4, status: "available" },
     { id: 5, seats: 8, status: "occupied" },
     { id: 6, seats: 2, status: "available" },
-    { id: 7, seats: 4, status: "reserved", reservedTime: "7:30 PM" },
+    { id: 7, seats: 4, status: "available" },
     { id: 8, seats: 6, status: "available" },
   ]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([
@@ -276,8 +276,8 @@ const Setting: React.FC = () => {
       }}
     >
       <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
-        <Layout.Content style={{ margin: "0 10rem", paddingTop: "2rem" }}>
-          <Title level={2} style={{ fontSize: 32, marginBottom: 4 }}>
+        <Layout.Content style={{ margin: "0 10rem", paddingTop: "2rem" }} className="mobile-responsive-content">
+          <Title level={2} style={{ fontSize: 32, marginBottom: 4 }} className="mobile-responsive-title">
             Settings
           </Title>
           <Text type="secondary">

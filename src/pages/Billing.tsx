@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Card,
   Row,
@@ -13,7 +13,6 @@ import {
   message,
   Layout,
 } from "antd";
-import { type TableData } from "./Dashboard";
 
 const { Title, Text } = Typography;
 
@@ -51,22 +50,12 @@ const initialBills: Bill[] = [
   },
 ];
 
-const initialTables: TableData[] = [
-  { id: 1, seats: 2, status: "available" },
-  { id: 2, seats: 4, status: "occupied" },
-  { id: 3, seats: 6, status: "reserved", reservedTime: "7:30 PM" },
-  { id: 4, seats: 4, status: "available" },
-  { id: 5, seats: 8, status: "occupied" },
-  { id: 6, seats: 2, status: "available" },
-  { id: 7, seats: 4, status: "reserved", reservedTime: "7:30 PM" },
-  { id: 8, seats: 6, status: "available" },
-];
 
 const Billing: React.FC = () => {
   const [bills, setBills] = useState<Bill[]>(initialBills);
   const [filter, setFilter] = useState<"All" | "Paid" | "Unpaid">("All");
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
-  const [tables, setTables] = useState<TableData[]>(initialTables);
+  // Removed unused tables state
 
   const filteredBills = bills.filter(
     (bill) =>
@@ -83,37 +72,35 @@ const Billing: React.FC = () => {
     .reduce((acc, b) => acc + b.totalAmount, 0);
 
   const handleCloseBill = (billId: number) => {
-    const now = new Date().toLocaleString();
-    setBills((prev) =>
-      prev.map((b) =>
-        b.id === billId ? { ...b, isPaid: true, paidAt: now } : b
-      )
-    );
-    if (selectedBill?.id === billId) {
-      setSelectedBill({ ...selectedBill, isPaid: true, paidAt: now });
+    try {
+      const now = new Date().toLocaleString();
+      setBills((prev) =>
+        prev.map((b) =>
+          b.id === billId ? { ...b, isPaid: true, paidAt: now } : b
+        )
+      );
+      if (selectedBill?.id === billId) {
+        setSelectedBill({ ...selectedBill, isPaid: true, paidAt: now });
+      }
+      message.success("Bill closed successfully ✅");
+    } catch (error) {
+      message.error("Failed to close bill. Please try again.");
+      console.error("Error closing bill:", error);
     }
-    message.success("Bill closed successfully ✅");
   };
 
-  const setAvailableStatus = (id: number) => {
-    setTables((prev) =>
-      prev.map((table) =>
-        table.id === id ? { ...table, status: "available" } : table
-      )
-    );
-  };
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
-      <Layout.Content style={{ margin: "0 10rem", paddingTop: "2rem" }}>
+      <Layout.Content style={{ margin: "0 10rem", paddingTop: "2rem" }} className="mobile-responsive-content">
         {/* Title */}
-        <Title level={2} style={{ fontSize: 32, marginBottom: 4 }}>
+        <Title level={2} style={{ fontSize: 32, marginBottom: 4 }} className="mobile-responsive-title">
           Billing & Payments
         </Title>
         <Text type="secondary">Manage bills and payment processing</Text>
 
         {/* Summary Cards */}
-        <Row gutter={[24, 24]} style={{ marginTop: "2rem" }} align="stretch">
+        <Row gutter={[24, 24]} style={{ marginTop: "2rem" }} align="stretch" className="mobile-responsive-stats">
           {[
             { label: "Total Bills", value: totalBills, color: "#111827" },
             { label: "Unpaid", value: unpaidBills, color: "red" },
@@ -262,7 +249,6 @@ const Billing: React.FC = () => {
                         type="primary"
                         onClick={() => {
                           handleCloseBill(selectedBill.id);
-                          setAvailableStatus(selectedBill.id);
                         }}
                         style={{
                           backgroundColor: "#000000",

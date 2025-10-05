@@ -1,6 +1,5 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import Dashboard from "./pages/Dashboard.tsx";
 import Setting from "./pages/Setting.tsx";
@@ -8,7 +7,7 @@ import Order from "./pages/Order.tsx";
 import Billing from "./pages/Billing.tsx";
 import Navbar from "./components/Nav.tsx";
 
-function Layout() {
+export function Layout() {
   return (
     <div>
       <Navbar /> {/* จะโชว์ทุกหน้า */}

@@ -66,3 +66,76 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* MOBILE RESPONSIVE STYLES - ONLY AFFECTS MOBILE/TABLET, DESKTOP UNCHANGED */
+
+/* Mobile navbar responsiveness (under 1024px) */
+@media (max-width: 1023px) {
+  .navbar-responsive {
+    padding: 0 1rem !important;
+  }
+}
+
+/* Tablet navbar responsiveness (under 768px) */
+@media (max-width: 767px) {
+  .navbar-responsive {
+    padding: 0 0.5rem !important;
+  }
+
+  .navbar-responsive .ant-tabs {
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  .navbar-responsive .ant-tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .navbar-responsive .ant-tabs-tab {
+    flex-shrink: 0 !important;
+    padding: 8px 12px !important;
+  }
+}
+
+/* Mobile page content margins - ONLY FOR MOBILE */
+@media (max-width: 1023px) {
+  .mobile-responsive-content {
+    margin: 0 1rem !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .mobile-responsive-content {
+    margin: 0 0.5rem !important;
+  }
+}
+
+/* Mobile typography - ONLY FOR MOBILE */
+@media (max-width: 767px) {
+  .mobile-responsive-title {
+    font-size: 1.5rem !important;
+  }
+
+  .mobile-responsive-stats .ant-col {
+    margin-bottom: 0.5rem;
+  }
+
+  .mobile-responsive-filter {
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+
+  .mobile-responsive-filter .ant-btn {
+    font-size: 14px !important;
+    height: 36px !important;
+    padding: 0 12px !important;
+  }
+}
+
+/* Mobile welcome text - hide on very small screens */
+@media (max-width: 640px) {
+  .mobile-hide-welcome {
+    display: none !important;
+  }
+}

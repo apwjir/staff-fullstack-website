@@ -1,22 +1,27 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   LogoutOutlined,
   DashboardOutlined,
   FileTextOutlined,
   CreditCardOutlined,
   SettingOutlined,
+  MenuOutlined,
 } from "@ant-design/icons";
-import { Tabs, Flex, ConfigProvider, Button } from "antd";
+import { Tabs, Flex, ConfigProvider, Button, Drawer, Grid } from "antd";
 import type { TabsProps } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 
 function Nav() {
-  const [name, setName] = useState("UwU");
+  const [name] = useState("UwU");
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { useBreakpoint } = Grid;
+  const screens = useBreakpoint();
 
   const onChange = (key: string) => {
     navigate(key);
+    setDrawerVisible(false);
   };
 
   const getCurrentActiveKey = () => {
@@ -89,7 +94,7 @@ function Nav() {
         style={{
           width: "100%",
           height: "64px",
-          padding: "0 10rem",
+          padding: screens.lg ? "0 10rem" : screens.md ? "0 1.5rem" : "0 1rem",
           background: "#ffffff",
           borderBottom: "1px solid #e5e7eb",
           boxSizing: "border-box",
@@ -99,59 +104,223 @@ function Nav() {
         <div style={{ flex: "0 0 auto" }}>
           <h1 style={{
             margin: 0,
-            fontSize: "1.8rem",
+            fontSize: screens.lg ? "1.8rem" : screens.md ? "1.5rem" : "1.3rem",
             fontWeight: "bold",
             color: "#111827",
-            fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+            fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+            whiteSpace: "nowrap"
           }}>
             Restaurant
           </h1>
         </div>
 
-        {/* Center - Navigation Tabs */}
-        <div style={{ flex: "1", display: "flex", justifyContent: "center" }}>
-          <Tabs
-            activeKey={getCurrentActiveKey()}
-            items={items}
-            onChange={onChange}
-            type="line"
-            size="middle"
-            style={{
-              border: "none",
-              height: "64px",
-              lineHeight: "64px"
-            }}
-            tabBarStyle={{
-              border: "none",
-              marginBottom: 0,
-              height: "64px"
-            }}
-          />
-        </div>
+        {/* Center - Navigation Tabs (Desktop/Tablet only) */}
+        {screens.md && (
+          <div style={{
+            flex: "1",
+            display: "flex",
+            justifyContent: "center",
+            overflow: "hidden",
+            minWidth: 0
+          }}>
+            <Tabs
+              activeKey={getCurrentActiveKey()}
+              items={items}
+              onChange={onChange}
+              type="line"
+              size={screens.lg ? "middle" : "small"}
+              style={{
+                border: "none",
+                height: "64px",
+                lineHeight: "64px",
+                maxWidth: "100%"
+              }}
+              tabBarStyle={{
+                border: "none",
+                marginBottom: 0,
+                height: "64px",
+                whiteSpace: "nowrap",
+                overflowX: "auto",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none"
+              }}
+            />
+          </div>
+        )}
 
-        {/* Right - Welcome & Logout */}
+        {/* Right - Welcome & Logout (Desktop/Tablet) / Menu Button (Mobile) */}
         <div style={{ flex: "0 0 auto" }}>
-          <Flex align="center" gap={16}>
+          <Flex align="center" gap={screens.lg ? 16 : 12}>
+            {screens.lg && (
+              <span style={{
+                fontSize: "1rem",
+                color: "#6b7280",
+                fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+                whiteSpace: "nowrap"
+              }}>
+                Welcome, {name}
+              </span>
+            )}
+
+            {!screens.md ? (
+              <Button
+                type="text"
+                icon={<MenuOutlined style={{ fontSize: "18px" }} />}
+                onClick={() => setDrawerVisible(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#6b7280",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  width: "42px",
+                  height: "42px",
+                  padding: 0,
+                  backgroundColor: "#ffffff",
+                  transition: "all 0.2s ease"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#000000";
+                  e.currentTarget.style.borderColor = "#000000";
+                  e.currentTarget.style.backgroundColor = "#f9fafb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#6b7280";
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.backgroundColor = "#ffffff";
+                }}
+              />
+            ) : (
+              <Button
+                type="text"
+                icon={<LogoutOutlined />}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  color: "#6b7280",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  padding: screens.lg ? "8px 16px" : "6px 12px",
+                  height: "auto",
+                  backgroundColor: "#ffffff",
+                  transition: "all 0.2s ease",
+                  fontSize: screens.lg ? "1rem" : "0.9rem"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#000000";
+                  e.currentTarget.style.borderColor = "#000000";
+                  e.currentTarget.style.backgroundColor = "#f9fafb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#6b7280";
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.backgroundColor = "#ffffff";
+                }}
+              >
+                {screens.lg ? "Logout" : "Logout"}
+              </Button>
+            )}
+          </Flex>
+        </div>
+      </Flex>
+
+      {/* Mobile Navigation Drawer */}
+      <Drawer
+        title={(
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px"
+          }}>
             <span style={{
-              fontSize: "1rem",
+              fontSize: "1.3rem",
+              fontWeight: "bold",
+              color: "#111827",
+              fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+            }}>
+              Restaurant
+            </span>
+            <span style={{
+              fontSize: "0.9rem",
               color: "#6b7280",
               fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
             }}>
               Welcome, {name}
             </span>
+          </div>
+        )}
+        placement="right"
+        onClose={() => setDrawerVisible(false)}
+        open={drawerVisible}
+        width={300}
+        styles={{
+          body: { padding: 0 },
+          header: { borderBottom: "1px solid #f0f0f0", paddingBottom: "16px" }
+        }}
+      >
+        <div style={{ padding: "0.5rem 0 1rem 0" }}>
+          {items.map((item, index) => (
+            <div
+              key={item.key}
+              onClick={() => onChange(item.key!)}
+              style={{
+                padding: "18px 24px",
+                display: "flex",
+                alignItems: "center",
+                gap: "16px",
+                cursor: "pointer",
+                backgroundColor: getCurrentActiveKey() === item.key ? "#f8fafc" : "transparent",
+                borderLeft: getCurrentActiveKey() === item.key ? "4px solid #000" : "4px solid transparent",
+                transition: "all 0.2s ease",
+                fontSize: "1.1rem",
+                fontWeight: getCurrentActiveKey() === item.key ? "600" : "400",
+                color: getCurrentActiveKey() === item.key ? "#111827" : "#4b5563",
+                fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+                borderBottom: index < items.length - 1 ? "1px solid #f1f5f9" : "none"
+              }}
+              onMouseEnter={(e) => {
+                if (getCurrentActiveKey() !== item.key) {
+                  e.currentTarget.style.backgroundColor = "#f8fafc";
+                  e.currentTarget.style.color = "#111827";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (getCurrentActiveKey() !== item.key) {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.color = "#4b5563";
+                }
+              }}
+            >
+              {item.label}
+            </div>
+          ))}
+
+          <div style={{
+            padding: "20px 24px",
+            borderTop: "2px solid #f0f0f0",
+            marginTop: "1rem",
+            backgroundColor: "#fafbfc"
+          }}>
             <Button
               type="text"
-              icon={<LogoutOutlined />}
+              icon={<LogoutOutlined style={{ fontSize: "16px" }} />}
+              block
               style={{
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "center",
+                gap: "10px",
                 color: "#6b7280",
                 border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-                padding: "8px 16px",
+                borderRadius: "10px",
+                padding: "14px 20px",
                 height: "auto",
+                fontSize: "1rem",
+                fontWeight: "500",
                 backgroundColor: "#ffffff",
-                transition: "all 0.2s ease"
+                transition: "all 0.2s ease",
+                fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "#000000";
@@ -166,9 +335,9 @@ function Nav() {
             >
               Logout
             </Button>
-          </Flex>
+          </div>
         </div>
-      </Flex>
+      </Drawer>
     </ConfigProvider>
   );
 }

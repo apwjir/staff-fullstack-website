@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Layout,
   Card,
@@ -13,7 +13,6 @@ import {
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
-  CalendarOutlined,
   QrcodeOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
@@ -95,40 +94,48 @@ export default function Dashboard() {
 
   /** ✅ เปลี่ยนสถานะของโต๊ะ */
   const handleChangeStatus = (tableId: number, newStatus: TableStatus) => {
-    setTables((prev) =>
-      prev.map((t) =>
-        t.id === tableId ? { ...t, status: newStatus } : t
-      )
-    );
+    try {
+      setTables((prev) =>
+        prev.map((t) =>
+          t.id === tableId ? { ...t, status: newStatus } : t
+        )
+      );
+    } catch (error) {
+      console.error("Error changing table status:", error);
+    }
   };
 
   /** ✅ สร้าง QR Code + Token */
   const handleGenerateQRCode = (table: Table) => {
-    // สร้าง token แบบ random
-    const token = crypto.randomUUID(); // ใช้ Math.random().toString(36).slice(2) ได้เหมือนกัน
+    try {
+      // สร้าง token แบบ random
+      const token = crypto.randomUUID(); // ใช้ Math.random().toString(36).slice(2) ได้เหมือนกัน
 
-    // อัปเดต table ใน state
-    setTables((prev) =>
-      prev.map((t) =>
-        t.id === table.id ? { ...t, qrCodeToken: token, status: "occupied" } : t
-      )
-    );
+      // อัปเดต table ใน state
+      setTables((prev) =>
+        prev.map((t) =>
+          t.id === table.id ? { ...t, qrCodeToken: token, status: "occupied" } : t
+        )
+      );
 
-    // เปิด modal พร้อม table ที่มี token ใหม่
-    setSelectedTable({ ...table, qrCodeToken: token });
-    setModalVisible(true);
+      // เปิด modal พร้อม table ที่มี token ใหม่
+      setSelectedTable({ ...table, qrCodeToken: token });
+      setModalVisible(true);
+    } catch (error) {
+      console.error("Error generating QR code:", error);
+    }
   };
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
-      <Content style={{ margin: "0 10rem", paddingTop: "2rem" }}>
-        <Title level={2} style={{ fontSize: 32, marginBottom: 4 }}>
+      <Content style={{ margin: "0 10rem", paddingTop: "2rem" }} className="mobile-responsive-content">
+        <Title level={2} style={{ fontSize: 32, marginBottom: 4 }} className="mobile-responsive-title">
           Table Management
         </Title>
         <Text type="secondary">Monitor and manage restaurant tables</Text>
 
         {/* Summary */}
-        <Row gutter={[24, 24]} style={{ marginTop: "2rem" }}>
+        <Row gutter={[24, 24]} style={{ marginTop: "2rem" }} className="mobile-responsive-stats">
           {[
             { label: "Total Tables", value: total, color: "#111827" },
             { label: "Available", value: availableCount, color: "green" },
@@ -146,7 +153,7 @@ export default function Dashboard() {
         </Row>
 
         {/* Filter Buttons */}
-        <div style={{ marginTop: "2rem", display: "flex", gap: 12 }}>
+        <div style={{ marginTop: "2rem", display: "flex", gap: 12 }} className="mobile-responsive-filter">
           {[
             { label: "All Tables", value: "all" },
             { label: "Available", value: "available" },
@@ -155,7 +162,7 @@ export default function Dashboard() {
             <Button
               key={opt.value}
               type={filter === opt.value ? "primary" : "default"}
-              onClick={() => setFilter(opt.value as any)}
+              onClick={() => setFilter(opt.value as "all" | TableStatus)}
               style={{
                 borderRadius: 20,
                 background: filter === opt.value ? "#111827" : "#fff",
