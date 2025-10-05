@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Layout,
   Card,
@@ -9,6 +9,8 @@ import {
   Button,
   Modal,
   QRCode,
+  message,
+  Spin,
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -16,6 +18,7 @@ import {
   QrcodeOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
+import { adminApiService, mapTableStatus, type Table as BackendTable } from "../services/api";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -24,28 +27,48 @@ export type TableStatus = "available" | "occupied";
 
 export interface Table {
   id: number;
+  tableNumber: number;
   seats: number;
   status: TableStatus;
   reservedTime?: string;
-  qrCodeToken?: string; // ✅ optional เพราะตอนเริ่มยังไม่มี
+  qrCodeToken?: string;
 }
 
-const initialTables: Table[] = [
-  { id: 1, seats: 2, status: "available" },
-  { id: 2, seats: 4, status: "occupied" },
-  { id: 3, seats: 6, status: "available" },
-  { id: 4, seats: 4, status: "available" },
-  { id: 5, seats: 8, status: "occupied" },
-  { id: 6, seats: 2, status: "available" },
-  { id: 7, seats: 4, status: "available" },
-  { id: 8, seats: 6, status: "available" },
-];
-
 export default function Dashboard() {
-  const [tables, setTables] = useState<Table[]>(initialTables);
+  const [tables, setTables] = useState<Table[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | TableStatus>("all");
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+
+  // Load tables from API
+  useEffect(() => {
+    const loadTables = async () => {
+      try {
+        setLoading(true);
+        const backendTables = await adminApiService.getTables();
+
+        // Convert backend table format to frontend format
+        const frontendTables: Table[] = backendTables.map((table: BackendTable) => ({
+          id: table.id,
+          tableNumber: table.tableNumber,
+          seats: table.capacity,
+          status: mapTableStatus(table.status),
+          qrCodeToken: table.qrCodeToken,
+        }));
+
+        setTables(frontendTables);
+      } catch (error) {
+        console.error('Failed to load tables:', error);
+        message.error('Failed to load tables. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTables();
+  }, []);
 
   const filteredTables =
     filter === "all" ? tables : tables.filter((t) => t.status === filter);
@@ -93,38 +116,66 @@ export default function Dashboard() {
   };
 
   /** ✅ เปลี่ยนสถานะของโต๊ะ */
-  const handleChangeStatus = (tableId: number, newStatus: TableStatus) => {
+  const handleChangeStatus = async (tableId: number, newStatus: TableStatus) => {
     try {
+      // Convert frontend status to backend status
+      const backendStatus = newStatus === "available" ? "AVAILABLE" : "OCCUPIED";
+
+      // Update status via API
+      await adminApiService.updateTableStatus(tableId, backendStatus);
+
+      // Update local state
       setTables((prev) =>
         prev.map((t) =>
           t.id === tableId ? { ...t, status: newStatus } : t
         )
       );
+
+      message.success(`Table ${tables.find(t => t.id === tableId)?.tableNumber} status updated to ${newStatus}`);
     } catch (error) {
       console.error("Error changing table status:", error);
+      message.error("Failed to update table status. Please try again.");
     }
   };
 
   /** ✅ สร้าง QR Code + Token */
-  const handleGenerateQRCode = (table: Table) => {
+  const handleGenerateQRCode = async (table: Table) => {
     try {
-      // สร้าง token แบบ random
-      const token = crypto.randomUUID(); // ใช้ Math.random().toString(36).slice(2) ได้เหมือนกัน
+      setQrLoading(true);
 
-      // อัปเดต table ใน state
+      // Generate QR code via API
+      const qrData = await adminApiService.generateTableQR(table.id);
+
+      // Update table in state with new token
+      const updatedTable = { ...table, qrCodeToken: qrData.token };
       setTables((prev) =>
         prev.map((t) =>
-          t.id === table.id ? { ...t, qrCodeToken: token, status: "occupied" } : t
+          t.id === table.id ? updatedTable : t
         )
       );
 
-      // เปิด modal พร้อม table ที่มี token ใหม่
-      setSelectedTable({ ...table, qrCodeToken: token });
+      // Open modal with updated table
+      setSelectedTable(updatedTable);
       setModalVisible(true);
+
+      message.success(`QR Code generated for Table ${table.tableNumber}`);
     } catch (error) {
       console.error("Error generating QR code:", error);
+      message.error("Failed to generate QR code. Please try again.");
+    } finally {
+      setQrLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
+        <Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+          <Spin size="large" />
+        </Content>
+      </Layout>
+    );
+  }
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
@@ -207,7 +258,7 @@ export default function Dashboard() {
                     }}
                   >
                     <Title level={5} style={{ margin: 0, fontWeight: "bold" }}>
-                      Table {table.id}
+                      Table {table.tableNumber}
                     </Title>
                     {getStatusTag(table.status, table.id)}
                   </div>
@@ -222,6 +273,7 @@ export default function Dashboard() {
 
                 <Button
                   block
+                  loading={qrLoading}
                   style={{
                     marginTop: "auto",
                     backgroundColor: "#1c1919ff",
@@ -258,10 +310,10 @@ export default function Dashboard() {
           {selectedTable && (
             <>
               <Title level={3} style={{ marginBottom: 24 }}>
-                Table {selectedTable.id} QR Code
+                Table {selectedTable.tableNumber} QR Code
               </Title>
               <QRCode
-                value={`https://example.com/table/${selectedTable.id}?token=${selectedTable.qrCodeToken}`}
+                value={`${import.meta.env.VITE_CUSTOMER_FRONTEND_URL || 'http://localhost:5173'}/table/${selectedTable.tableNumber}?token=${selectedTable.qrCodeToken}`}
                 size={250}
               />
               <Text

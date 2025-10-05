@@ -1,23 +1,15 @@
-import { useState } from "react";
-import { Layout, Card, Row, Col, Button, Tag, Typography, Select, message } from "antd";
+import { useState, useEffect } from "react";
+import { Layout, Card, Row, Col, Button, Tag, Typography, Select, message, Spin } from "antd";
 import {
   FireOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons";
+import { adminApiService, mapOrderStatus, mapFrontendOrderStatus, type Order as BackendOrder, type OrderItem as BackendOrderItem, type MenuItem } from "../services/api";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
 const { Option } = Select;
-
-export interface MenuItem {
-  id: number;
-  name: string;
-  price: number;
-  foodtype: string;
-  description: string;
-  isAvailable: boolean;
-}
 
 interface OrderItem {
   id: number;
@@ -25,112 +17,77 @@ interface OrderItem {
   menuItemId: number;
   quantity: number;
   note?: string;
-  menuItem?: MenuItem; // optional: join menu info
+  menuItem?: MenuItem;
 }
 
 interface Order {
   id: number;
   tableId: number;
-  sessionId: string;
+  sessionId: string | null;
   status: "waiting" | "cooking" | "done";
   createdAt: string;
   updatedAt: string;
-  queuePos: number;
-  billId?: number;
+  queuePos: number | null;
+  billId?: number | null;
   items: OrderItem[];
 }
 
-const initialOrders: Order[] = [
-  {
-    id: 1,
-    tableId: 2,
-    sessionId: "sess-001",
-    status: "waiting",
-    createdAt: "2025-10-04T02:30:00Z",
-    updatedAt: "2025-10-04T02:30:00Z",
-    queuePos: 1,
-    items: [
-      {
-        id: 1,
-        orderId: 1,
-        menuItemId: 101,
-        quantity: 1,
-        menuItem: {
-          id: 101,
-          name: "Margherita Pizza",
-          price: 250,
-          foodtype: "main",
-          description: "Classic pizza with tomato & mozzarella",
-          isAvailable: true,
-        },
-      },
-      {
-        id: 2,
-        orderId: 1,
-        menuItemId: 102,
-        quantity: 2,
-        menuItem: {
-          id: 102,
-          name: "Caesar Salad",
-          price: 120,
-          foodtype: "appetizer",
-          description: "Fresh romaine with Caesar dressing",
-          isAvailable: true,
-        },
-      },
-    ],
-  },
-  {
-    id: 2,
-    tableId: 5,
-    sessionId: "sess-002",
-    status: "cooking",
-    createdAt: "2025-10-04T02:15:00Z",
-    updatedAt: "2025-10-04T02:20:00Z",
-    queuePos: 2,
-    items: [
-      {
-        id: 3,
-        orderId: 2,
-        menuItemId: 201,
-        quantity: 1,
-        note: "medium rare",
-        menuItem: {
-          id: 201,
-          name: "Grilled Salmon",
-          price: 450,
-          foodtype: "main",
-          description: "Salmon fillet grilled to perfection",
-          isAvailable: true,
-        },
-      },
-      {
-        id: 4,
-        orderId: 2,
-        menuItemId: 202,
-        quantity: 2,
-        menuItem: {
-          id: 202,
-          name: "House Wine",
-          price: 180,
-          foodtype: "beverage",
-          description: "Red wine glass",
-          isAvailable: true,
-        },
-      },
-    ],
-  },
-];
-
 export default function Order() {
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
 
-  const updateOrderStatus = (
+  // Load orders from API
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        setLoading(true);
+        const backendOrders = await adminApiService.getOrderQueue();
+
+        // Convert backend orders to frontend format
+        const frontendOrders: Order[] = backendOrders.map((order: BackendOrder) => ({
+          id: order.id,
+          tableId: order.tableId,
+          sessionId: order.sessionId,
+          status: mapOrderStatus(order.status),
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+          queuePos: order.queuePos,
+          billId: order.billId,
+          items: order.orderItems.map((item: BackendOrderItem) => ({
+            id: item.id,
+            orderId: item.orderId,
+            menuItemId: item.menuItemId,
+            quantity: item.quantity,
+            note: item.note,
+            menuItem: item.menuItem,
+          })),
+        }));
+
+        setOrders(frontendOrders);
+      } catch (error) {
+        console.error('Failed to load orders:', error);
+        message.error('Failed to load orders. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOrders();
+  }, []);
+
+  const updateOrderStatus = async (
     id: number,
     status: "waiting" | "cooking" | "done"
   ) => {
     try {
+      // Convert frontend status to backend status
+      const backendStatus = mapFrontendOrderStatus(status);
+
+      // Update status via API
+      await adminApiService.updateOrderStatus(id, backendStatus);
+
+      // Update local state
       setOrders((prev) =>
         prev.map((order) =>
           order.id === id
@@ -142,9 +99,11 @@ export default function Order() {
             : order
         )
       );
-      message.success(`Order status updated to ${status}`);
+
+      message.success(`Order #${id} status updated to ${status}`);
     } catch (error) {
       console.error("Error updating order status:", error);
+      message.error("Failed to update order status. Please try again.");
     }
   };
 
@@ -180,6 +139,16 @@ export default function Order() {
 
   const filteredOrders =
     filter === "all" ? orders : orders.filter((o) => o.status === filter);
+
+  if (loading) {
+    return (
+      <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
+        <Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+          <Spin size="large" />
+        </Content>
+      </Layout>
+    );
+  }
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>

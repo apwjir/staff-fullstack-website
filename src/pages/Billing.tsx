@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   Row,
@@ -12,7 +12,9 @@ import {
   QRCode,
   message,
   Layout,
+  Spin,
 } from "antd";
+import { adminApiService, type Bill as BackendBill } from "../services/api";
 
 const { Title, Text } = Typography;
 
@@ -21,41 +23,44 @@ interface Bill {
   tableId: number;
   isPaid: boolean;
   createdAt: string;
-  paidAt?: string;
+  paidAt?: string | null;
   totalAmount: number;
 }
 
-const initialBills: Bill[] = [
-  {
-    id: 2,
-    tableId: 2,
-    isPaid: false,
-    createdAt: "1/16/2024, 2:30:00 AM",
-    totalAmount: 56.12,
-  },
-  {
-    id: 5,
-    tableId: 5,
-    isPaid: true,
-    createdAt: "1/16/2024, 2:15:00 AM",
-    paidAt: "1/16/2024, 3:30:00 AM",
-    totalAmount: 46.41,
-  },
-  {
-    id: 7,
-    tableId: 7,
-    isPaid: false,
-    createdAt: "1/16/2024, 2:00:00 AM",
-    totalAmount: 24.82,
-  },
-];
-
-
 const Billing: React.FC = () => {
-  const [bills, setBills] = useState<Bill[]>(initialBills);
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"All" | "Paid" | "Unpaid">("All");
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
-  // Removed unused tables state
+
+  // Load bills from API
+  useEffect(() => {
+    const loadBills = async () => {
+      try {
+        setLoading(true);
+        const backendBills = await adminApiService.getBills();
+
+        // Convert backend bills to frontend format
+        const frontendBills: Bill[] = backendBills.map((bill: BackendBill) => ({
+          id: bill.id,
+          tableId: bill.tableId,
+          isPaid: bill.isPaid,
+          createdAt: new Date(bill.createdAt).toLocaleString(),
+          paidAt: bill.paidAt ? new Date(bill.paidAt).toLocaleString() : null,
+          totalAmount: bill.totalAmount,
+        }));
+
+        setBills(frontendBills);
+      } catch (error) {
+        console.error('Failed to load bills:', error);
+        message.error('Failed to load bills. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBills();
+  }, []);
 
   const filteredBills = bills.filter(
     (bill) =>
@@ -71,8 +76,11 @@ const Billing: React.FC = () => {
     .filter((b) => b.isPaid)
     .reduce((acc, b) => acc + b.totalAmount, 0);
 
-  const handleCloseBill = (billId: number) => {
+  const handleCloseBill = async (billId: number) => {
     try {
+      // Mark bill as paid via API
+      await adminApiService.markBillAsPaid(billId);
+
       const now = new Date().toLocaleString();
       setBills((prev) =>
         prev.map((b) =>
@@ -89,6 +97,16 @@ const Billing: React.FC = () => {
     }
   };
 
+
+  if (loading) {
+    return (
+      <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
+        <Layout.Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+          <Spin size="large" />
+        </Layout.Content>
+      </Layout>
+    );
+  }
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
