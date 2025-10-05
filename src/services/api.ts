@@ -91,11 +91,22 @@ class AdminApiService {
       ...options,
     };
 
+    // Debug logging for user endpoint
+    if (endpoint === '/users') {
+      console.log('Making request to /users with config:', {
+        url,
+        hasToken: !!this.authToken,
+        authHeader: config.headers?.Authorization ? 'Present' : 'Missing'
+      });
+    }
+
     try {
       const response = await fetch(url, config);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`HTTP ${response.status} for ${endpoint}:`, errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
@@ -143,7 +154,16 @@ class AdminApiService {
 
   // Orders API
   async getOrders(): Promise<Order[]> {
-    return this.request<Order[]>('/orders');
+    // Since backend only has /orders/queue for PENDING orders,
+    // we need to create a workaround to get all orders
+    try {
+      // Try to get all orders - this might not exist yet
+      return this.request<Order[]>('/orders');
+    } catch (error) {
+      // Fallback: get pending orders from queue
+      console.warn('Full orders endpoint not available, using queue only');
+      return this.request<Order[]>('/orders/queue');
+    }
   }
 
   async getOrderQueue(): Promise<Order[]> {
@@ -158,6 +178,23 @@ class AdminApiService {
     return this.request<Order>(`/orders/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
+    });
+  }
+
+  // Users API
+  async getUsers(): Promise<User[]> {
+    // Refresh token from localStorage in case it was updated
+    this.authToken = localStorage.getItem('adminToken');
+    console.log('Getting users with token:', this.authToken ? 'Present' : 'Missing');
+    return this.request<User[]>('/users');
+  }
+
+  async createUser(userData: { name: string; email: string; password: string }): Promise<User> {
+    // Refresh token from localStorage in case it was updated
+    this.authToken = localStorage.getItem('adminToken');
+    return this.request<User>('/users/staff', {
+      method: 'POST',
+      body: JSON.stringify(userData),
     });
   }
 

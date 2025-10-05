@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   Col,
@@ -14,6 +14,7 @@ import {
   Modal,
   Switch,
   ConfigProvider,
+  Spin,
 } from "antd";
 import type { UploadFile } from "antd";
 import {
@@ -25,78 +26,132 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import "./Setting.css";
-import { type MenuItem } from "./Order";
-import { type Table } from "./Dashboard";
+import { adminApiService, type MenuItem as BackendMenuItem, type Table as BackendTable, type User as BackendUser, mapTableStatus } from "../services/api";
 
 const { Title, Text } = Typography;
 
-// interface Table {
-//   id: number;
-//   seats: number;
-//   status: TableStatus;
-//   reservedTime?: string;
-//   qrCodeToken?: string; // ✅ optional เพราะตอนเริ่มยังไม่มี
-// }
+export type TableStatus = "available" | "occupied";
+
+export interface Table {
+  id: number;
+  tableNumber: number;
+  seats: number;
+  status: TableStatus;
+  qrCodeToken?: string;
+}
+
+export interface MenuItem {
+  id: number;
+  name: string;
+  price: number;
+  foodtype: string;
+  description: string | null;
+  isAvailable: boolean;
+}
 
 interface Staff {
   id: number;
   name: string;
   email: string;
-  password: string;
+  createdAt: string;
 }
 
-// interface MenuItem {
-//   id: number;
-//   name: string;
-//   price: number;
-//   foodtype: string;
-//   description: string;
-//   isAvailable: boolean;
-// }
-
 const Setting: React.FC = () => {
-  const [role] = useState("admin"); // mock role, สมมติว่าตอนนี้คือ admin
-  // const [role] = useState("staff"); // mock role, สมมติว่าตอนนี้คือ staff
+  const [role] = useState("admin");
+  const [loading, setLoading] = useState(true);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [tables, setTables] = useState<Table[]>([
-    { id: 1, seats: 2, status: "available" },
-    { id: 2, seats: 4, status: "occupied" },
-    { id: 3, seats: 6, status: "available" },
-    { id: 4, seats: 4, status: "available" },
-    { id: 5, seats: 8, status: "occupied" },
-    { id: 6, seats: 2, status: "available" },
-    { id: 7, seats: 4, status: "available" },
-    { id: 8, seats: 6, status: "available" },
-  ]);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([
-    {
-      id: 1,
-      name: "Margherita Pizza",
-      price: 16.99,
-      foodtype: "mains",
-      description: "Fresh mozzarella, basil, tomato sauce",
-      isAvailable: true,
-    },
-    {
-      id: 2,
-      name: "Caesar Salad",
-      price: 12.99,
-      foodtype: "appetizers",
-      description: "Crisp romaine, parmesan, croutons",
-      isAvailable: true,
-    },
-    {
-      id: 3,
-      name: "Grilled Salmon",
-      price: 26.99,
-      foodtype: "mains",
-      description: "Atlantic salmon with seasonal vegetables",
-      isAvailable: true,
-    },
-  ]);
-  const [staffs, setStaffs] = useState<Staff[]>([
-    { id: 1, name: "admin", email: "admin@mail.com", password: "1234" },
-  ]);
+  const [tables, setTables] = useState<Table[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [staffs, setStaffs] = useState<Staff[]>([]);
+
+  // Load data from API
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        console.log('Loading Settings data...');
+
+        // Load data individually to catch specific errors
+        let backendTables: BackendTable[] = [];
+        let backendMenuItems: BackendMenuItem[] = [];
+        let backendUsers: BackendUser[] = [];
+
+        try {
+          backendTables = await adminApiService.getTables();
+          console.log('Tables loaded:', backendTables.length);
+        } catch (error) {
+          console.error('Failed to load tables:', error);
+          message.error('Failed to load tables');
+        }
+
+        try {
+          backendMenuItems = await adminApiService.getMenuItems();
+          console.log('Menu items loaded:', backendMenuItems.length);
+        } catch (error) {
+          console.error('Failed to load menu items:', error);
+          message.error('Failed to load menu items');
+        }
+
+        try {
+          console.log('Attempting to load users...');
+          console.log('Auth token available:', !!localStorage.getItem('adminToken'));
+          backendUsers = await adminApiService.getUsers();
+          console.log('Users loaded successfully:', backendUsers.length, backendUsers);
+        } catch (error) {
+          console.error('Failed to load users - detailed error:', error);
+          if (error instanceof Error) {
+            console.error('Error message:', error.message);
+          }
+          message.error('Failed to load users - check console for details');
+        }
+
+        // Convert tables to frontend format
+        const frontendTables: Table[] = backendTables.map((table: BackendTable) => ({
+          id: table.id,
+          tableNumber: table.tableNumber,
+          seats: table.capacity,
+          status: mapTableStatus(table.status),
+          qrCodeToken: table.qrCodeToken,
+        }));
+
+        // Convert menu items to frontend format
+        const frontendMenuItems: MenuItem[] = backendMenuItems.map((item: BackendMenuItem) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          foodtype: item.foodtype,
+          description: item.description,
+          isAvailable: item.isAvailable,
+        }));
+
+        // Convert users to frontend format
+        const frontendStaffs: Staff[] = backendUsers.map((user: BackendUser) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          createdAt: user.createdAt,
+        }));
+
+        console.log('Setting data:', {
+          tables: frontendTables.length,
+          menuItems: frontendMenuItems.length,
+          staffs: frontendStaffs.length
+        });
+
+        setTables(frontendTables);
+        setMenuItems(frontendMenuItems);
+        setStaffs(frontendStaffs);
+
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        message.error('Failed to load data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // ---- FORM STATES ----
   const [newNumber, setNewNumber] = useState("");
@@ -122,28 +177,40 @@ const Setting: React.FC = () => {
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
 
   // ---- FUNCTIONS ----
-  const handleAddTable = () => {
+  const handleAddTable = async () => {
     if (!newNumber || !newCapacity) {
-      message.error("กรุณากรอก Table Number และ Capacity");
+      message.error("Please fill in Table Number and Capacity");
       return;
     }
     const number = parseInt(newNumber);
     const capacity = parseInt(newCapacity);
     if (isNaN(number) || isNaN(capacity)) {
-      message.error("กรุณากรอกเป็นตัวเลขเท่านั้น");
+      message.error("Please enter numbers only");
       return;
     }
-    setTables([
-      ...tables,
-      {
-        id: Number(newNumber),
-        seats: Number(newCapacity),
-        status: "available",
-      },
-    ]);
-    setNewNumber("");
-    setNewCapacity("");
-    message.success("เพิ่มโต๊ะสำเร็จ");
+
+    try {
+      const newTable = await adminApiService.createTable({
+        tableNumber: number,
+        capacity: capacity
+      });
+
+      const frontendTable: Table = {
+        id: newTable.id,
+        tableNumber: newTable.tableNumber,
+        seats: newTable.capacity,
+        status: mapTableStatus(newTable.status),
+        qrCodeToken: newTable.qrCodeToken,
+      };
+
+      setTables([...tables, frontendTable]);
+      setNewNumber("");
+      setNewCapacity("");
+      message.success("Table added successfully");
+    } catch (error) {
+      console.error('Failed to add table:', error);
+      message.error("Failed to add table. Please try again.");
+    }
   };
 
   const handleDeleteTable = (id: number) => {
@@ -193,27 +260,44 @@ const Setting: React.FC = () => {
   };
 
   // ---- MENU FUNCTIONS ----
-  const handleAddMenuItem = () => {
+  const handleAddMenuItem = async () => {
     if (!newName || !newPrice || !newFoodtype) {
-      message.error("กรุณากรอก Name, Price และ Category");
+      message.error("Please fill in Name, Price and Category");
       return;
     }
-    const newItem: MenuItem = {
-      id: Date.now(),
-      name: newName,
-      price: parseInt(newPrice),
-      foodtype: newFoodtype, // ✅ ต้องใช้ชื่อ foodtype
-      description: newDescription,
-      isAvailable: newIsAvailable, // ✅ ต้องใช้ชื่อ isAvailable
-    };
 
-    setMenuItems([...menuItems, newItem]);
-    setNewName("");
-    setNewPrice("");
-    setNewFoodtype("");
-    setNewDescription("");
-    setNewIsAvailable(true);
-    message.success("เพิ่มเมนูสำเร็จ");
+    try {
+      const newItem: BackendMenuItem = {
+        id: 0, // Will be set by backend
+        name: newName,
+        price: parseFloat(newPrice),
+        foodtype: newFoodtype as 'RICE' | 'NOODLE' | 'DESSERT' | 'DRINK',
+        description: newDescription || null,
+        isAvailable: newIsAvailable,
+      };
+
+      const createdItem = await adminApiService.createMenuItem(newItem);
+
+      const frontendItem: MenuItem = {
+        id: createdItem.id,
+        name: createdItem.name,
+        price: createdItem.price,
+        foodtype: createdItem.foodtype,
+        description: createdItem.description,
+        isAvailable: createdItem.isAvailable,
+      };
+
+      setMenuItems([...menuItems, frontendItem]);
+      setNewName("");
+      setNewPrice("");
+      setNewFoodtype("");
+      setNewDescription("");
+      setNewIsAvailable(true);
+      message.success("Menu item added successfully");
+    } catch (error) {
+      console.error('Failed to add menu item:', error);
+      message.error("Failed to add menu item. Please try again.");
+    }
   };
 
   const handleDeleteMenuItem = (id: number) => {
@@ -222,22 +306,37 @@ const Setting: React.FC = () => {
   };
 
   // ---- STAFF FUNCTIONS ----
-  const handleAddStaff = () => {
+  const handleAddStaff = async () => {
     if (!newUser || !newEmail || !newPassword) {
-      message.error("กรุณากรอก User, Email และ Password");
+      message.error("Please fill in Name, Email and Password");
       return;
     }
-    const newStaff: Staff = {
-      id: Date.now(),
-      name: newUser,
-      email: newEmail,
-      password: newPassword,
-    };
-    setStaffs([...staffs, newStaff]);
-    setNewUser("");
-    setNewEmail("");
-    setNewPassword("");
-    message.success("เพิ่ม Staff สำเร็จ");
+
+    try {
+      const userData = {
+        name: newUser,
+        email: newEmail,
+        password: newPassword,
+      };
+
+      const createdUser = await adminApiService.createUser(userData);
+
+      const newStaff: Staff = {
+        id: createdUser.id,
+        name: createdUser.name,
+        email: createdUser.email,
+        createdAt: createdUser.createdAt,
+      };
+
+      setStaffs([...staffs, newStaff]);
+      setNewUser("");
+      setNewEmail("");
+      setNewPassword("");
+      message.success("Staff added successfully");
+    } catch (error) {
+      console.error('Failed to add staff:', error);
+      message.error("Failed to add staff. Please try again.");
+    }
   };
 
   const handleDeleteStaff = (id: number) => {
@@ -260,6 +359,16 @@ const Setting: React.FC = () => {
     setIsEditStaffModalVisible(false);
     setEditingStaff(null);
   };
+
+  if (loading) {
+    return (
+      <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
+        <Layout.Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+          <Spin size="large" />
+        </Layout.Content>
+      </Layout>
+    );
+  }
 
   return (
     <ConfigProvider
@@ -360,19 +469,24 @@ const Setting: React.FC = () => {
                         style={{ width: "100%" }}
                         size="middle"
                       >
-                        {tables.map((table) => (
-                          <Card
-                            key={table.id}
-                            size="small"
-                            style={{ borderRadius: 8 }}
-                          >
-                            <Row justify="space-between" align="middle">
-                              <Col>
-                                <Text strong>{`Table ${table.id}`}</Text>
-                                <br />
-                                <Text type="secondary">
-                                  {table.seats} seats • {table.status}
-                                </Text>
+                        {tables.length === 0 ? (
+                          <Card size="small" style={{ borderRadius: 8, textAlign: 'center', padding: '20px' }}>
+                            <Text type="secondary">No tables found. Add a new table below.</Text>
+                          </Card>
+                        ) : (
+                          tables.map((table) => (
+                            <Card
+                              key={table.id}
+                              size="small"
+                              style={{ borderRadius: 8 }}
+                            >
+                              <Row justify="space-between" align="middle">
+                                <Col>
+                                  <Text strong>{`Table ${table.tableNumber}`}</Text>
+                                  <br />
+                                  <Text type="secondary">
+                                    {table.seats} seats • {table.status}
+                                  </Text>
                               </Col>
                               <Col>
                                 <Space size="middle">
@@ -391,7 +505,7 @@ const Setting: React.FC = () => {
                               </Col>
                             </Row>
                           </Card>
-                        ))}
+                        )))}
                       </Space>
                     </Col>
                   </Row>
@@ -498,18 +612,23 @@ const Setting: React.FC = () => {
                         style={{ width: "100%" }}
                         size="middle"
                       >
-                        {menuItems.map((item) => (
-                          <Card
-                            key={item.id}
-                            size="small"
-                            style={{ borderRadius: 8 }}
-                          >
-                            <Row justify="space-between" align="middle">
-                              <Col>
-                                <Text strong>{item.name}</Text>
-                                <br />
+                        {menuItems.length === 0 ? (
+                          <Card size="small" style={{ borderRadius: 8, textAlign: 'center', padding: '20px' }}>
+                            <Text type="secondary">No menu items found. Add a new item below.</Text>
+                          </Card>
+                        ) : (
+                          menuItems.map((item) => (
+                            <Card
+                              key={item.id}
+                              size="small"
+                              style={{ borderRadius: 8 }}
+                            >
+                              <Row justify="space-between" align="middle">
+                                <Col>
+                                  <Text strong>{item.name}</Text>
+                                  <br />
                                 <Text type="secondary">
-                                  {item.price} ฿• {item.name}
+                                  {item.price} ฿ • {item.foodtype}
                                 </Text>
                                 <br />
                                 <Text>{item.description}</Text>
@@ -555,7 +674,7 @@ const Setting: React.FC = () => {
                               </Col>
                             </Row>
                           </Card>
-                        ))}
+                        )))}
                       </Space>
                     </Col>
                   </Row>
@@ -644,15 +763,20 @@ const Setting: React.FC = () => {
                               style={{ width: "100%" }}
                               size="middle"
                             >
-                              {staffs.map((staff) => (
-                                <Card
-                                  key={staff.id}
-                                  size="small"
-                                  style={{ borderRadius: 8 }}
-                                >
-                                  <Row justify="space-between" align="middle">
-                                    <Col>
-                                      <Text strong>{staff.name}</Text>
+                              {staffs.length === 0 ? (
+                                <Card size="small" style={{ borderRadius: 8, textAlign: 'center', padding: '20px' }}>
+                                  <Text type="secondary">No staff found. Add a new staff member below.</Text>
+                                </Card>
+                              ) : (
+                                staffs.map((staff) => (
+                                  <Card
+                                    key={staff.id}
+                                    size="small"
+                                    style={{ borderRadius: 8 }}
+                                  >
+                                    <Row justify="space-between" align="middle">
+                                      <Col>
+                                        <Text strong>{staff.name}</Text>
                                       <br />
                                       <Text type="secondary">
                                         {staff.email}
@@ -677,7 +801,7 @@ const Setting: React.FC = () => {
                                     </Col>
                                   </Row>
                                 </Card>
-                              ))}
+                              )))}
                             </Space>
                           </Col>
                         </Row>

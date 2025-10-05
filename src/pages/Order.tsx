@@ -42,7 +42,7 @@ export default function Order() {
     const loadOrders = async () => {
       try {
         setLoading(true);
-        const backendOrders = await adminApiService.getOrderQueue();
+        const backendOrders = await adminApiService.getOrders();
 
         // Convert backend orders to frontend format
         const frontendOrders: Order[] = backendOrders.map((order: BackendOrder) => ({
