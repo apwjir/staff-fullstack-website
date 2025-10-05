@@ -1,79 +1,175 @@
 import React, { useState } from "react";
-import "./nav.css";
-import ExitIcon from "../assets/logout_24dp_4B5563_FILL0_wght400_GRAD0_opsz24.svg";
-import DashboardIcon from "../assets/dashboard_24dp_4B5563_FILL0_wght400_GRAD0_opsz24.svg";
-import OrderIcon from "../assets/receipt_24dp_4B5563_FILL0_wght400_GRAD0_opsz24.svg";
-import BillingIcon from "../assets/credit_card_24dp_4B5563_FILL0_wght400_GRAD0_opsz24.svg";
-import SettingIcon from "../assets/settings_24dp_4B5563_FILL0_wght400_GRAD0_opsz24.svg";
-import { NavLink } from "react-router-dom";
+import {
+  LogoutOutlined,
+  DashboardOutlined,
+  FileTextOutlined,
+  CreditCardOutlined,
+  SettingOutlined,
+} from "@ant-design/icons";
+import { Tabs, Flex, ConfigProvider, Button } from "antd";
+import type { TabsProps } from "antd";
+import { useNavigate, useLocation } from "react-router-dom";
 
 function Nav() {
   const [name, setName] = useState("UwU");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const onChange = (key: string) => {
+    navigate(key);
+  };
+
+  const getCurrentActiveKey = () => {
+    return location.pathname;
+  };
+
+  const items: TabsProps['items'] = [
+    {
+      key: '/Dashboard',
+      label: (
+        <span>
+          <DashboardOutlined style={{ marginRight: 8 }} />
+          Dashboard
+        </span>
+      ),
+    },
+    {
+      key: '/Order',
+      label: (
+        <span>
+          <FileTextOutlined style={{ marginRight: 8 }} />
+          Orders
+        </span>
+      ),
+    },
+    {
+      key: '/Billing',
+      label: (
+        <span>
+          <CreditCardOutlined style={{ marginRight: 8 }} />
+          Billing
+        </span>
+      ),
+    },
+    {
+      key: '/Setting',
+      label: (
+        <span>
+          <SettingOutlined style={{ marginRight: 8 }} />
+          Settings
+        </span>
+      ),
+    },
+  ];
 
   return (
-    <div className="Box">
-      {/* ✅ ครอบด้วย container เพื่อทำ max-width + margin auto */}
-      <div className="container">
-        {/* ซ้าย */}
-        <div className="left">
-          <p>Restaurant</p>
+    <ConfigProvider
+      theme={{
+        token: {
+          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+        },
+        components: {
+          Tabs: {
+            itemColor: '#6b7280',
+            itemHoverColor: '#111827',
+            itemSelectedColor: '#000000',
+            itemActiveColor: '#000000',
+            inkBarColor: '#000000',
+            titleFontSize: 16,
+          },
+          Button: {
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+          },
+        },
+      }}
+    >
+      <Flex
+        justify="space-between"
+        align="center"
+        style={{
+          width: "100%",
+          height: "64px",
+          padding: "0 10rem",
+          background: "#ffffff",
+          borderBottom: "1px solid #e5e7eb",
+          boxSizing: "border-box",
+        }}
+      >
+        {/* Left - Restaurant Title */}
+        <div style={{ flex: "0 0 auto" }}>
+          <h1 style={{
+            margin: 0,
+            fontSize: "1.8rem",
+            fontWeight: "bold",
+            color: "#111827",
+            fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+          }}>
+            Restaurant
+          </h1>
         </div>
 
-        {/* เมนูกลาง */}
-        <div className="middle-left">
-          <ul>
-            <li>
-              <NavLink
-                to="/Dashboard"
-                className={({ isActive }) => (isActive ? "active" : "")}
-              >
-                <img src={DashboardIcon} alt="Dashboard" />
-                Dashboard
-              </NavLink>
-            </li>
-
-            <li>
-              <NavLink
-                to="/Order"
-                className={({ isActive }) => (isActive ? "active" : "")}
-              >
-                <img src={OrderIcon} alt="Orders" />
-                Orders
-              </NavLink>
-            </li>
-
-            <li>
-              <NavLink
-                to="/Billing"
-                className={({ isActive }) => (isActive ? "active" : "")}
-              >
-                <img src={BillingIcon} alt="Billing" />
-                Billing
-              </NavLink>
-            </li>
-
-            <li>
-              <NavLink
-                to="/Setting"
-                className={({ isActive }) => (isActive ? "active" : "")}
-              >
-                <img src={SettingIcon} alt="Settings" />
-                Settings
-              </NavLink>
-            </li>
-          </ul>
+        {/* Center - Navigation Tabs */}
+        <div style={{ flex: "1", display: "flex", justifyContent: "center" }}>
+          <Tabs
+            activeKey={getCurrentActiveKey()}
+            items={items}
+            onChange={onChange}
+            type="line"
+            size="middle"
+            style={{
+              border: "none",
+              height: "64px",
+              lineHeight: "64px"
+            }}
+            tabBarStyle={{
+              border: "none",
+              marginBottom: 0,
+              height: "64px"
+            }}
+          />
         </div>
 
-        {/* ขวา */}
-        <div className="right">
-          <p>Welcome, {name}</p>
-          <button>
-            <img src={ExitIcon} alt="Logout" />
-            Logout
-          </button>
+        {/* Right - Welcome & Logout */}
+        <div style={{ flex: "0 0 auto" }}>
+          <Flex align="center" gap={16}>
+            <span style={{
+              fontSize: "1rem",
+              color: "#6b7280",
+              fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+            }}>
+              Welcome, {name}
+            </span>
+            <Button
+              type="text"
+              icon={<LogoutOutlined />}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                color: "#6b7280",
+                border: "1px solid #e5e7eb",
+                borderRadius: "8px",
+                padding: "8px 16px",
+                height: "auto",
+                backgroundColor: "#ffffff",
+                transition: "all 0.2s ease"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#000000";
+                e.currentTarget.style.borderColor = "#000000";
+                e.currentTarget.style.backgroundColor = "#f9fafb";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#6b7280";
+                e.currentTarget.style.borderColor = "#e5e7eb";
+                e.currentTarget.style.backgroundColor = "#ffffff";
+              }}
+            >
+              Logout
+            </Button>
+          </Flex>
         </div>
-      </div>
-    </div>
+      </Flex>
+    </ConfigProvider>
   );
 }
 

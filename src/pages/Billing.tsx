@@ -62,7 +62,7 @@ const initialTables: TableData[] = [
   { id: 8, seats: 6, status: "available" },
 ];
 
-const BillingPage: React.FC = () => {
+const Billing: React.FC = () => {
   const [bills, setBills] = useState<Bill[]>(initialBills);
   const [filter, setFilter] = useState<"All" | "Paid" | "Unpaid">("All");
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
@@ -289,4 +289,4 @@ const BillingPage: React.FC = () => {
   );
 };
 
-export default BillingPage;
+export default Billing;

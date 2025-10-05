@@ -231,19 +231,14 @@ export default function Order() {
             <Col xs={24} key={order.id}>
               <Card style={{ borderRadius: 12 }}>
                 {/* Header */}
-                <Row justify="space-between" align="middle">
+                <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
                   <Col>
                     <Title level={5} style={{ margin: 0 }}>
                       Order #{order.id} - Table {order.tableId}
                     </Title>
                   </Col>
-                  <Col>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
-                    >
-                      {getTag(order.status)}
-                      <Text type="secondary">{order.tableId}</Text>
-                    </div>
+                  <Col style={{ display: "flex", justifyContent: "flex-end" }}>
+                    {getTag(order.status)}
                   </Col>
                 </Row>
 

@@ -21,7 +21,7 @@ import {
 const { Content } = Layout;
 const { Title, Text } = Typography;
 
-export type TableStatus = "available" | "occupied" | "reserved";
+export type TableStatus = "available" | "occupied";
 
 export interface Table {
   id: number;
@@ -34,15 +34,15 @@ export interface Table {
 const initialTables: Table[] = [
   { id: 1, seats: 2, status: "available" },
   { id: 2, seats: 4, status: "occupied" },
-  { id: 3, seats: 6, status: "reserved", reservedTime: "7:30 PM" },
+  { id: 3, seats: 6, status: "available" },
   { id: 4, seats: 4, status: "available" },
   { id: 5, seats: 8, status: "occupied" },
   { id: 6, seats: 2, status: "available" },
-  { id: 7, seats: 4, status: "reserved", reservedTime: "7:30 PM" },
+  { id: 7, seats: 4, status: "available" },
   { id: 8, seats: 6, status: "available" },
 ];
 
-export default function TableManagementPage() {
+export default function Dashboard() {
   const [tables, setTables] = useState<Table[]>(initialTables);
   const [filter, setFilter] = useState<"all" | TableStatus>("all");
   const [modalVisible, setModalVisible] = useState(false);
@@ -54,26 +54,31 @@ export default function TableManagementPage() {
   const total = tables.length;
   const availableCount = tables.filter((t) => t.status === "available").length;
   const occupiedCount = tables.filter((t) => t.status === "occupied").length;
-  const reservedCount = tables.filter((t) => t.status === "reserved").length;
 
-  const getStatusTag = (status: TableStatus) => {
+  const getStatusTag = (status: TableStatus, tableId: number) => {
+    const nextStatus = status === "available" ? "occupied" : "available";
+
     switch (status) {
       case "available":
         return (
-          <Tag color="green" icon={<CheckCircleOutlined />}>
+          <Tag
+            color="green"
+            icon={<CheckCircleOutlined />}
+            style={{ cursor: "pointer" }}
+            onClick={() => handleChangeStatus(tableId, nextStatus)}
+          >
             Available
           </Tag>
         );
       case "occupied":
         return (
-          <Tag color="red" icon={<CloseCircleOutlined />}>
+          <Tag
+            color="red"
+            icon={<CloseCircleOutlined />}
+            style={{ cursor: "pointer" }}
+            onClick={() => handleChangeStatus(tableId, nextStatus)}
+          >
             Occupied
-          </Tag>
-        );
-      case "reserved":
-        return (
-          <Tag color="blue" icon={<CalendarOutlined />}>
-            Reserved
           </Tag>
         );
     }
@@ -85,9 +90,16 @@ export default function TableManagementPage() {
         return "1px solid #95de64";
       case "occupied":
         return "1px solid #ff7875";
-      case "reserved":
-        return "1px solid #69c0ff";
     }
+  };
+
+  /** ✅ เปลี่ยนสถานะของโต๊ะ */
+  const handleChangeStatus = (tableId: number, newStatus: TableStatus) => {
+    setTables((prev) =>
+      prev.map((t) =>
+        t.id === tableId ? { ...t, status: newStatus } : t
+      )
+    );
   };
 
   /** ✅ สร้าง QR Code + Token */
@@ -121,7 +133,6 @@ export default function TableManagementPage() {
             { label: "Total Tables", value: total, color: "#111827" },
             { label: "Available", value: availableCount, color: "green" },
             { label: "Occupied", value: occupiedCount, color: "red" },
-            { label: "Reserved", value: reservedCount, color: "blue" },
           ].map((stat) => (
             <Col xs={24} sm={12} md={6} key={stat.label}>
               <Card style={{ borderRadius: 12, height: 120 }}>
@@ -140,7 +151,6 @@ export default function TableManagementPage() {
             { label: "All Tables", value: "all" },
             { label: "Available", value: "available" },
             { label: "Occupied", value: "occupied" },
-            { label: "Reserved", value: "reserved" },
           ].map((opt) => (
             <Button
               key={opt.value}
@@ -172,11 +182,13 @@ export default function TableManagementPage() {
                   height: 220,
                   textAlign: "left",
                 }}
-                bodyStyle={{
-                  padding: "20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  height: "100%",
+                styles={{
+                  body: {
+                    padding: "20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%",
+                  },
                 }}
               >
                 <div style={{ flex: 1 }}>
@@ -190,7 +202,7 @@ export default function TableManagementPage() {
                     <Title level={5} style={{ margin: 0, fontWeight: "bold" }}>
                       Table {table.id}
                     </Title>
-                    {getStatusTag(table.status)}
+                    {getStatusTag(table.status, table.id)}
                   </div>
 
                   <Text style={{ display: "block", marginTop: 8 }}>
@@ -199,14 +211,6 @@ export default function TableManagementPage() {
                   <Text style={{ display: "block", marginTop: 4 }}>
                     <QrcodeOutlined /> QR Code
                   </Text>
-                  {table.status === "reserved" && (
-                    <Text
-                      type="secondary"
-                      style={{ display: "block", marginTop: 8 }}
-                    >
-                      Reserved for {table.reservedTime}
-                    </Text>
-                  )}
                 </div>
 
                 <Button
@@ -233,14 +237,16 @@ export default function TableManagementPage() {
           onCancel={() => setModalVisible(false)}
           footer={null}
           centered
-          bodyStyle={{
-            textAlign: "center",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
+          styles={{
+            body: {
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            },
+            mask: { backdropFilter: "blur(8px)" },
           }}
           width={400}
-          maskStyle={{ backdropFilter: "blur(8px)" }}
         >
           {selectedTable && (
             <>

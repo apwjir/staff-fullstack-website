@@ -13,6 +13,7 @@ import {
   Layout,
   Modal,
   Switch,
+  ConfigProvider,
 } from "antd";
 import {
   PlusOutlined,
@@ -53,7 +54,7 @@ interface Staff {
 //   isAvailable: boolean;
 // }
 
-const Billing: React.FC = () => {
+const Setting: React.FC = () => {
   const [role] = useState("admin"); // mock role, สมมติว่าตอนนี้คือ admin
   // const [role] = useState("staff"); // mock role, สมมติว่าตอนนี้คือ staff
   const [fileList, setFileList] = useState<any[]>([]);
@@ -261,18 +262,31 @@ const Billing: React.FC = () => {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
-      <Layout.Content style={{ margin: "0 10rem", paddingTop: "2rem" }}>
-        <Title level={2} style={{ fontSize: 32, marginBottom: 4 }}>
-          Settings
-        </Title>
-        <Text type="secondary">
-          Manage tables, menu items, and restaurant configuration
-        </Text>
+    <ConfigProvider
+      theme={{
+        components: {
+          Tabs: {
+            itemColor: '#6b7280',
+            itemHoverColor: '#111827',
+            itemSelectedColor: '#000000',
+            itemActiveColor: '#000000',
+            inkBarColor: '#000000',
+          },
+        },
+      }}
+    >
+      <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
+        <Layout.Content style={{ margin: "0 10rem", paddingTop: "2rem" }}>
+          <Title level={2} style={{ fontSize: 32, marginBottom: 4 }}>
+            Settings
+          </Title>
+          <Text type="secondary">
+            Manage tables, menu items, and restaurant configuration
+          </Text>
 
-        <Tabs
-          defaultActiveKey="tables"
-          className="custom-tabs"
+          <Tabs
+            defaultActiveKey="tables"
+            className="custom-tabs"
           items={[
             {
               key: "tables",
@@ -292,15 +306,17 @@ const Billing: React.FC = () => {
                         </Title>
                         <Row gutter={12}>
                           <Col span={12}>
+                            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Table Number</label>
                             <Input
-                              placeholder="Table Number"
+                              placeholder="Enter table number"
                               value={newNumber}
                               onChange={(e) => setNewNumber(e.target.value)}
                             />
                           </Col>
                           <Col span={12}>
+                            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Capacity</label>
                             <Input
-                              placeholder="Capacity"
+                              placeholder="Enter number of seats"
                               value={newCapacity}
                               onChange={(e) => setNewCapacity(e.target.value)}
                             />
@@ -398,33 +414,41 @@ const Billing: React.FC = () => {
                         <Title level={5}>
                           <PlusOutlined /> Add New Menu Item
                         </Title>
-                        <Input
-                          placeholder="e.g. Spaghetti Carbonara"
-                          value={newName}
-                          onChange={(e) => setNewName(e.target.value)}
-                        />
+                        <div>
+                          <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Menu Item Name</label>
+                          <Input
+                            placeholder="e.g. Spaghetti Carbonara"
+                            value={newName}
+                            onChange={(e) => setNewName(e.target.value)}
+                          />
+                        </div>
                         <Row gutter={12}>
                           <Col span={12}>
+                            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Price</label>
                             <Input
-                              placeholder="Price"
+                              placeholder="Enter price"
                               value={newPrice}
                               onChange={(e) => setNewPrice(e.target.value)}
                             />
                           </Col>
                           <Col span={12}>
+                            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Category</label>
                             <Input
-                              placeholder="Category"
+                              placeholder="e.g. appetizers, mains"
                               value={newFoodtype}
                               onChange={(e) => setNewFoodtype(e.target.value)}
                             />
                           </Col>
                         </Row>
-                        <Input.TextArea
-                          placeholder="Brief description"
-                          rows={3}
-                          value={newDescription}
-                          onChange={(e) => setNewDescription(e.target.value)}
-                        />
+                        <div>
+                          <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Description</label>
+                          <Input.TextArea
+                            placeholder="Brief description of the dish"
+                            rows={3}
+                            value={newDescription}
+                            onChange={(e) => setNewDescription(e.target.value)}
+                          />
+                        </div>
                         <Upload
                           fileList={fileList}
                           beforeUpload={() => false}
@@ -558,21 +582,30 @@ const Billing: React.FC = () => {
                               <Title level={5}>
                                 <PlusOutlined /> Add New Staff
                               </Title>
-                              <Input
-                                placeholder="Username"
-                                value={newUser}
-                                onChange={(e) => setNewUser(e.target.value)}
-                              />
-                              <Input
-                                placeholder="Email"
-                                value={newEmail}
-                                onChange={(e) => setNewEmail(e.target.value)}
-                              />
-                              <Input.Password
-                                placeholder="Password"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                              />
+                              <div>
+                                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Username</label>
+                                <Input
+                                  placeholder="Enter username"
+                                  value={newUser}
+                                  onChange={(e) => setNewUser(e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Email</label>
+                                <Input
+                                  placeholder="Enter email address"
+                                  value={newEmail}
+                                  onChange={(e) => setNewEmail(e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Password</label>
+                                <Input.Password
+                                  placeholder="Enter password"
+                                  value={newPassword}
+                                  onChange={(e) => setNewPassword(e.target.value)}
+                                />
+                              </div>
                               <Button
                                 type="primary"
                                 block
@@ -667,27 +700,32 @@ const Billing: React.FC = () => {
           centered
           maskStyle={{ backdropFilter: "blur(4px)" }}
         >
-          <Input
-            placeholder="Table Number"
-            type="number"
-            value={editingTable?.id}
-            onChange={(e) =>
-              setEditingTable((prev) =>
-                prev ? { ...prev, number: parseInt(e.target.value) || 0 } : prev
-              )
-            }
-            style={{ marginBottom: 12 }}
-          />
-          <Input
-            placeholder="Seats"
-            type="number"
-            value={editingTable?.seats}
-            onChange={(e) =>
-              setEditingTable((prev) =>
-                prev ? { ...prev, seats: parseInt(e.target.value) || 0 } : prev
-              )
-            }
-          />
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Table Number</label>
+            <Input
+              placeholder="Enter table number"
+              type="number"
+              value={editingTable?.id}
+              onChange={(e) =>
+                setEditingTable((prev) =>
+                  prev ? { ...prev, number: parseInt(e.target.value) || 0 } : prev
+                )
+              }
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Seats</label>
+            <Input
+              placeholder="Enter number of seats"
+              type="number"
+              value={editingTable?.seats}
+              onChange={(e) =>
+                setEditingTable((prev) =>
+                  prev ? { ...prev, seats: parseInt(e.target.value) || 0 } : prev
+                )
+              }
+            />
+          </div>
         </Modal>
 
         {/* --- Edit Menu Modal --- */}
@@ -701,48 +739,55 @@ const Billing: React.FC = () => {
           centered
           maskStyle={{ backdropFilter: "blur(4px)" }}
         >
-          <Input
-            placeholder="Name"
-            value={editingMenu?.name}
-            onChange={(e) =>
-              setEditingMenu((prev) =>
-                prev ? { ...prev, name: e.target.value } : prev
-              )
-            }
-            style={{ marginBottom: 12 }}
-          />
-          <Input
-            placeholder="Price"
-            value={editingMenu?.price}
-            onChange={(e) =>
-              setEditingMenu((prev) =>
-                prev ? { ...prev, price: parseInt(e.target.value) || 0 } : prev
-              )
-            }
-            style={{ marginBottom: 12 }}
-          />
-
-          <Input
-            placeholder="Category"
-            value={editingMenu?.foodtype}
-            onChange={(e) =>
-              setEditingMenu((prev) =>
-                prev ? { ...prev, category: e.target.value } : prev
-              )
-            }
-            style={{ marginBottom: 12 }}
-          />
-          <Input.TextArea
-            placeholder="Description"
-            rows={3}
-            value={editingMenu?.description}
-            onChange={(e) =>
-              setEditingMenu((prev) =>
-                prev ? { ...prev, description: e.target.value } : prev
-              )
-            }
-            style={{ marginBottom: 12 }}
-          />
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Menu Item Name</label>
+            <Input
+              placeholder="Enter item name"
+              value={editingMenu?.name}
+              onChange={(e) =>
+                setEditingMenu((prev) =>
+                  prev ? { ...prev, name: e.target.value } : prev
+                )
+              }
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Price</label>
+            <Input
+              placeholder="Enter price"
+              value={editingMenu?.price}
+              onChange={(e) =>
+                setEditingMenu((prev) =>
+                  prev ? { ...prev, price: parseInt(e.target.value) || 0 } : prev
+                )
+              }
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Category</label>
+            <Input
+              placeholder="Enter category"
+              value={editingMenu?.foodtype}
+              onChange={(e) =>
+                setEditingMenu((prev) =>
+                  prev ? { ...prev, category: e.target.value } : prev
+                )
+              }
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Description</label>
+            <Input.TextArea
+              placeholder="Enter description"
+              rows={3}
+              value={editingMenu?.description}
+              onChange={(e) =>
+                setEditingMenu((prev) =>
+                  prev ? { ...prev, description: e.target.value } : prev
+                )
+              }
+            />
+          </div>
           <div>
             <span>Available: </span>
             <Switch
@@ -767,37 +812,47 @@ const Billing: React.FC = () => {
           centered
           maskStyle={{ backdropFilter: "blur(4px)" }}
         >
-          <Input
-            placeholder="Name"
-            value={editingStaff?.name}
-            onChange={(e) =>
-              setEditingStaff((prev) =>
-                prev ? { ...prev, name: e.target.value } : prev
-              )
-            }
-          />
-          <Input
-            placeholder="Email"
-            value={editingStaff?.email}
-            onChange={(e) =>
-              setEditingStaff((prev) =>
-                prev ? { ...prev, email: e.target.value } : prev
-              )
-            }
-          />
-          <Input.Password
-            placeholder="Password"
-            value={editingStaff?.password}
-            onChange={(e) =>
-              setEditingStaff((prev) =>
-                prev ? { ...prev, password: e.target.value } : prev
-              )
-            }
-          />
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Name</label>
+            <Input
+              placeholder="Enter staff name"
+              value={editingStaff?.name}
+              onChange={(e) =>
+                setEditingStaff((prev) =>
+                  prev ? { ...prev, name: e.target.value } : prev
+                )
+              }
+            />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Email</label>
+            <Input
+              placeholder="Enter email address"
+              value={editingStaff?.email}
+              onChange={(e) =>
+                setEditingStaff((prev) =>
+                  prev ? { ...prev, email: e.target.value } : prev
+                )
+              }
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Password</label>
+            <Input.Password
+              placeholder="Enter password"
+              value={editingStaff?.password}
+              onChange={(e) =>
+                setEditingStaff((prev) =>
+                  prev ? { ...prev, password: e.target.value } : prev
+                )
+              }
+            />
+          </div>
         </Modal>
       </Layout.Content>
     </Layout>
+    </ConfigProvider>
   );
 };
 
-export default Billing;
+export default Setting;
