@@ -249,6 +249,7 @@ class AdminApiService {
     });
   }
 
+
   // Dashboard/Stats API
   async getDashboardStats(): Promise<{
     totalTables: number;

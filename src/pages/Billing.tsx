@@ -25,6 +25,19 @@ interface Bill {
   createdAt: string;
   paidAt?: string | null;
   totalAmount: number;
+  orders?: Array<{
+    id: number;
+    orderItems: Array<{
+      id: number;
+      quantity: number;
+      note?: string;
+      menuItem: {
+        id: number;
+        name: string;
+        price: number;
+      };
+    }>;
+  }>;
 }
 
 const Billing: React.FC = () => {
@@ -48,6 +61,7 @@ const Billing: React.FC = () => {
           createdAt: new Date(bill.createdAt).toLocaleString(),
           paidAt: bill.paidAt ? new Date(bill.paidAt).toLocaleString() : null,
           totalAmount: bill.totalAmount,
+          orders: bill.orders,
         }));
 
         setBills(frontendBills);
@@ -96,6 +110,7 @@ const Billing: React.FC = () => {
       console.error("Error closing bill:", error);
     }
   };
+
 
 
   if (loading) {
@@ -236,33 +251,104 @@ const Billing: React.FC = () => {
                     height: "100%",
                   }}
                 >
-                  <div
-                    style={{ display: "flex", justifyContent: "space-between" }}
-                  >
-                    <div>
-                      <Title level={4}>
-                        Table {selectedBill.tableId} -{" "}
-                        {selectedBill.isPaid ? "Paid" : "Unpaid"}
+                  <div>
+                    <div
+                      style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}
+                    >
+                      <div>
+                        <Title level={4}>
+                          Table {selectedBill.tableId} -{" "}
+                          {selectedBill.isPaid ? "Paid" : "Unpaid"}
+                        </Title>
+                        <Text>Created: {selectedBill.createdAt}</Text>
+                        {selectedBill.paidAt && (
+                          <div>
+                            <Text type="success">
+                              Paid at: {selectedBill.paidAt}
+                            </Text>
+                          </div>
+                        )}
+                      </div>
+                      <QRCode
+                        value={`https://payment.example.com/bill/${selectedBill.id}`}
+                        size={180}
+                      />
+                    </div>
+
+                    {/* Receipt Details */}
+                    <div
+                      style={{
+                        background: "#fafafa",
+                        border: "1px solid #f0f0f0",
+                        borderRadius: 8,
+                        padding: "16px",
+                        marginBottom: "16px",
+                      }}
+                    >
+                      <Title level={5} style={{ marginBottom: "16px", textAlign: "center" }}>
+                        RECEIPT
                       </Title>
-                      <Text>Total: ${selectedBill.totalAmount.toFixed(2)}</Text>
-                      <br />
-                      <Text>Created: {selectedBill.createdAt}</Text>
-                      {selectedBill.paidAt && (
+                      <div style={{ borderBottom: "1px dashed #d9d9d9", paddingBottom: "8px", marginBottom: "12px" }}>
+                        <Text strong>Table: {selectedBill.tableId}</Text>
+                        <br />
+                        <Text>Date: {selectedBill.createdAt}</Text>
+                      </div>
+
+                      {selectedBill.orders && selectedBill.orders.length > 0 ? (
                         <div>
-                          <Text type="success">
-                            Paid at: {selectedBill.paidAt}
-                          </Text>
+                          {selectedBill.orders.map((order) => (
+                            <div key={order.id} style={{ marginBottom: "16px" }}>
+                              <Text strong style={{ fontSize: "14px", color: "#666" }}>
+                                Order #{order.id}
+                              </Text>
+                              {order.orderItems.map((item) => (
+                                <div
+                                  key={item.id}
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    paddingLeft: "12px",
+                                    marginTop: "4px",
+                                  }}
+                                >
+                                  <div style={{ flex: 1 }}>
+                                    <Text>{item.menuItem.name}</Text>
+                                    {item.note && (
+                                      <div>
+                                        <Text type="secondary" style={{ fontSize: "12px" }}>
+                                          Note: {item.note}
+                                        </Text>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                                    <Text>{item.quantity}x</Text>
+                                    <Text>${item.menuItem.price.toFixed(2)}</Text>
+                                    <Text strong style={{ minWidth: "60px", textAlign: "right" }}>
+                                      ${(item.quantity * item.menuItem.price).toFixed(2)}
+                                    </Text>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                          <div style={{ borderTop: "1px dashed #d9d9d9", paddingTop: "12px", marginTop: "16px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                              <Text strong style={{ fontSize: "16px" }}>TOTAL:</Text>
+                              <Text strong style={{ fontSize: "16px" }}>
+                                ${selectedBill.totalAmount.toFixed(2)}
+                              </Text>
+                            </div>
+                          </div>
                         </div>
+                      ) : (
+                        <Text type="secondary">No items found</Text>
                       )}
                     </div>
-                    <QRCode
-                      value={`https://payment.example.com/bill/${selectedBill.id}`}
-                      size={180}
-                    />
                   </div>
 
                   {!selectedBill.isPaid && (
-                    <div style={{ marginTop: "16px", textAlign: "left" }}>
+                    <div style={{ textAlign: "left" }}>
                       <Button
                         type="primary"
                         onClick={() => {
