@@ -10,18 +10,25 @@ import {
 import { Tabs, Flex, ConfigProvider, Button, Drawer, Grid } from "antd";
 import type { TabsProps } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "./AuthProvider";
 
 function Nav() {
   const [name] = useState("UwU");
   const [drawerVisible, setDrawerVisible] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
   const { useBreakpoint } = Grid;
   const screens = useBreakpoint();
 
   const onChange = (key: string) => {
     navigate(key);
     setDrawerVisible(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
   };
 
   const getCurrentActiveKey = () => {
@@ -195,6 +202,7 @@ function Nav() {
               <Button
                 type="text"
                 icon={<LogoutOutlined />}
+                onClick={handleLogout}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -305,6 +313,7 @@ function Nav() {
             <Button
               type="text"
               icon={<LogoutOutlined style={{ fontSize: "16px" }} />}
+              onClick={handleLogout}
               block
               style={{
                 display: "flex",

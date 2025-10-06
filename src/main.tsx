@@ -1,25 +1,50 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard.tsx";
 import Setting from "./pages/Setting.tsx";
 import Order from "./pages/Order.tsx";
 import Billing from "./pages/Billing.tsx";
 import Navbar from "./components/Nav.tsx";
+import LoginPage from "./components/LoginPage.tsx";
+import AuthProvider, { useAuth } from "./components/AuthProvider.tsx";
+import { ConfigProvider } from 'antd';
 
+// Protected Route Component
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Layout with Authentication Check
 export function Layout() {
   return (
-    <div>
-      <Navbar /> {/* จะโชว์ทุกหน้า */}
-      <Outlet />
-    </div>
+    <ProtectedRoute>
+      <div>
+        <Navbar />
+        <Outlet />
+      </div>
+    </ProtectedRoute>
   );
 }
 
 const router = createBrowserRouter([
   {
+    path: "/login",
+    element: <LoginPage />,
+  },
+  {
     path: "/",
-    element: <Layout />, // Layout จะหุ้มทุกหน้า
+    element: <Layout />,
     children: [
       { index: true, element: <Dashboard /> },
       { path: "dashboard", element: <Dashboard /> },
@@ -32,6 +57,17 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#1c1919ff',
+          borderRadius: 8,
+        },
+      }}
+    >
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </ConfigProvider>
   </StrictMode>
 );
