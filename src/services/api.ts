@@ -10,6 +10,8 @@ export interface MenuItem {
   description: string | null;
   foodtype: 'RICE' | 'NOODLE' | 'DESSERT' | 'DRINK';
   isAvailable: boolean;
+  photoUrl?: string | null;
+  photoId?: string | null;
 }
 
 export interface Table {
@@ -214,11 +216,79 @@ class AdminApiService {
     });
   }
 
+  async createMenuItemWithImage(menuItem: Omit<MenuItem, 'id' | 'photoUrl' | 'photoId'>, imageFile?: File): Promise<MenuItem> {
+    if (!imageFile) {
+      // If no image, use regular create method
+      return this.createMenuItem(menuItem);
+    }
+
+    // Create FormData for multipart/form-data upload
+    const formData = new FormData();
+    formData.append('name', menuItem.name);
+    formData.append('price', menuItem.price.toString());
+    formData.append('foodtype', menuItem.foodtype);
+    if (menuItem.description) {
+      formData.append('description', menuItem.description);
+    }
+    formData.append('isAvailable', menuItem.isAvailable.toString());
+    formData.append('image', imageFile);
+
+    const url = `${this.baseUrl}/menu/with-image`;
+    const config: RequestInit = {
+      method: 'POST',
+      headers: {
+        ...(this.authToken && { 'Authorization': `Bearer ${this.authToken}` }),
+      },
+      body: formData,
+    };
+
+    const response = await fetch(url, config);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
   async updateMenuItem(id: number, menuItem: Partial<MenuItem>): Promise<MenuItem> {
     return this.request<MenuItem>(`/menu/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(menuItem),
     });
+  }
+
+  async updateMenuItemWithImage(id: number, menuItem: Partial<Omit<MenuItem, 'id' | 'photoUrl' | 'photoId'>>, imageFile?: File): Promise<MenuItem> {
+    if (!imageFile) {
+      // If no image, use regular update method
+      return this.updateMenuItem(id, menuItem);
+    }
+
+    // Create FormData for multipart/form-data upload
+    const formData = new FormData();
+    if (menuItem.name !== undefined) formData.append('name', menuItem.name);
+    if (menuItem.price !== undefined) formData.append('price', menuItem.price.toString());
+    if (menuItem.foodtype !== undefined) formData.append('foodtype', menuItem.foodtype);
+    if (menuItem.description !== undefined) formData.append('description', menuItem.description || '');
+    if (menuItem.isAvailable !== undefined) formData.append('isAvailable', menuItem.isAvailable.toString());
+    formData.append('image', imageFile);
+
+    const url = `${this.baseUrl}/menu/${id}/with-image`;
+    const config: RequestInit = {
+      method: 'PATCH',
+      headers: {
+        ...(this.authToken && { 'Authorization': `Bearer ${this.authToken}` }),
+      },
+      body: formData,
+    };
+
+    const response = await fetch(url, config);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
   }
 
   async deleteMenuItem(id: number): Promise<void> {

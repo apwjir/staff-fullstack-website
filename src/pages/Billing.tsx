@@ -229,16 +229,7 @@ const Billing: React.FC = () => {
               </Space>
             </Col>
 
-            {/* Divider */}
-            <Col xs={0} md={1}>
-              <div
-                style={{
-                  borderLeft: "1px solid #f0f0f0",
-                  height: "100%",
-                  margin: "0 auto",
-                }}
-              />
-            </Col>
+            {/* Divider - removed responsive column to prevent infinite loop */}
 
             {/* Right: Bill Detail */}
             <Col xs={24} md={15}>
@@ -260,7 +251,9 @@ const Billing: React.FC = () => {
                           Table {selectedBill.tableId} -{" "}
                           {selectedBill.isPaid ? "Paid" : "Unpaid"}
                         </Title>
-                        <Text>Created: {selectedBill.createdAt}</Text>
+                        <div>
+                          <Text>Created: {selectedBill.createdAt}</Text>
+                        </div>
                         {selectedBill.paidAt && (
                           <div>
                             <Text type="success">
@@ -289,9 +282,11 @@ const Billing: React.FC = () => {
                         RECEIPT
                       </Title>
                       <div style={{ borderBottom: "1px dashed #d9d9d9", paddingBottom: "8px", marginBottom: "12px" }}>
-                        <Text strong>Table: {selectedBill.tableId}</Text>
-                        <br />
-                        <Text>Date: {selectedBill.createdAt}</Text>
+                        <>
+                          <Text strong>Table: {selectedBill.tableId}</Text>
+                          <br />
+                          <Text>Date: {selectedBill.createdAt}</Text>
+                        </>
                       </div>
 
                       {selectedBill.orders && selectedBill.orders.length > 0 ? (

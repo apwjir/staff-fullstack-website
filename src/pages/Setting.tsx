@@ -24,6 +24,7 @@ import {
   TableOutlined,
   UploadOutlined,
   UserOutlined,
+  PictureOutlined,
 } from "@ant-design/icons";
 import "./Setting.css";
 import { adminApiService, type MenuItem as BackendMenuItem, type Table as BackendTable, type User as BackendUser, mapTableStatus } from "../services/api";
@@ -47,6 +48,8 @@ export interface MenuItem {
   foodtype: string;
   description: string | null;
   isAvailable: boolean;
+  photoUrl?: string | null;
+  photoId?: string | null;
 }
 
 interface Staff {
@@ -122,6 +125,8 @@ const Setting: React.FC = () => {
           foodtype: item.foodtype,
           description: item.description,
           isAvailable: item.isAvailable,
+          photoUrl: item.photoUrl,
+          photoId: item.photoId,
         }));
 
         // Convert users to frontend format
@@ -172,6 +177,7 @@ const Setting: React.FC = () => {
 
   const [isEditMenuModalVisible, setIsEditMenuModalVisible] = useState(false);
   const [editingMenu, setEditingMenu] = useState<MenuItem | null>(null);
+  const [editFileList, setEditFileList] = useState<UploadFile[]>([]);
 
   const [isEditStaffModalVisible, setIsEditStaffModalVisible] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
@@ -245,18 +251,67 @@ const Setting: React.FC = () => {
 
   const handleEditMenu = (item: MenuItem) => {
     setEditingMenu(item);
+    // Initialize with existing image if available
+    if (item.photoUrl) {
+      setEditFileList([{
+        uid: '-1',
+        name: 'current-image',
+        status: 'done',
+        url: item.photoUrl,
+        thumbUrl: item.photoUrl,
+      }]);
+    } else {
+      setEditFileList([]);
+    }
     setIsEditMenuModalVisible(true);
   };
 
-  const handleSaveEditMenu = () => {
-    if (editingMenu) {
+  const handleSaveEditMenu = async () => {
+    if (!editingMenu) return;
+
+    try {
+      // Check if there's a new image file to upload
+      const newImageFile = editFileList.find(file => file.originFileObj);
+      const imageFile = newImageFile ? newImageFile.originFileObj as File : undefined;
+
+      let updatedItem: BackendMenuItem;
+      const updateData = {
+        name: editingMenu.name,
+        price: editingMenu.price,
+        foodtype: editingMenu.foodtype as 'RICE' | 'NOODLE' | 'DESSERT' | 'DRINK',
+        description: editingMenu.description,
+        isAvailable: editingMenu.isAvailable,
+      };
+
+      if (imageFile) {
+        updatedItem = await adminApiService.updateMenuItemWithImage(editingMenu.id, updateData, imageFile);
+      } else {
+        updatedItem = await adminApiService.updateMenuItem(editingMenu.id, updateData);
+      }
+
+      const frontendItem: MenuItem = {
+        id: updatedItem.id,
+        name: updatedItem.name,
+        price: updatedItem.price,
+        foodtype: updatedItem.foodtype,
+        description: updatedItem.description,
+        isAvailable: updatedItem.isAvailable,
+        photoUrl: updatedItem.photoUrl,
+        photoId: updatedItem.photoId,
+      };
+
       setMenuItems((prev) =>
-        prev.map((item) => (item.id === editingMenu.id ? editingMenu : item))
+        prev.map((item) => (item.id === editingMenu.id ? frontendItem : item))
       );
-      message.success("แก้ไขเมนูสำเร็จ");
+      message.success("Menu item updated successfully");
+    } catch (error) {
+      console.error('Failed to update menu item:', error);
+      message.error("Failed to update menu item. Please try again.");
     }
+
     setIsEditMenuModalVisible(false);
     setEditingMenu(null);
+    setEditFileList([]);
   };
 
   // ---- MENU FUNCTIONS ----
@@ -267,8 +322,7 @@ const Setting: React.FC = () => {
     }
 
     try {
-      const newItem: BackendMenuItem = {
-        id: 0, // Will be set by backend
+      const newItem = {
         name: newName,
         price: parseFloat(newPrice),
         foodtype: newFoodtype as 'RICE' | 'NOODLE' | 'DESSERT' | 'DRINK',
@@ -276,7 +330,15 @@ const Setting: React.FC = () => {
         isAvailable: newIsAvailable,
       };
 
-      const createdItem = await adminApiService.createMenuItem(newItem);
+      // Get the image file if uploaded
+      const imageFile = fileList.length > 0 ? fileList[0].originFileObj : undefined;
+
+      let createdItem: BackendMenuItem;
+      if (imageFile) {
+        createdItem = await adminApiService.createMenuItemWithImage(newItem, imageFile as File);
+      } else {
+        createdItem = await adminApiService.createMenuItem(newItem);
+      }
 
       const frontendItem: MenuItem = {
         id: createdItem.id,
@@ -285,6 +347,8 @@ const Setting: React.FC = () => {
         foodtype: createdItem.foodtype,
         description: createdItem.description,
         isAvailable: createdItem.isAvailable,
+        photoUrl: createdItem.photoUrl,
+        photoId: createdItem.photoId,
       };
 
       setMenuItems([...menuItems, frontendItem]);
@@ -293,6 +357,7 @@ const Setting: React.FC = () => {
       setNewFoodtype("");
       setNewDescription("");
       setNewIsAvailable(true);
+      setFileList([]); // Clear uploaded files
       message.success("Menu item added successfully");
     } catch (error) {
       console.error('Failed to add menu item:', error);
@@ -449,16 +514,6 @@ const Setting: React.FC = () => {
                       </Space>
                     </Col>
 
-                    <Col xs={0} md={1}>
-                      <div
-                        style={{
-                          borderLeft: "1px solid #f0f0f0",
-                          height: "100%",
-                          margin: "0 auto",
-                        }}
-                      />
-                    </Col>
-
                     {/* Existing Tables */}
                     <Col xs={24} md={13}>
                       <Title level={5}>
@@ -592,7 +647,7 @@ const Setting: React.FC = () => {
                       </Space>
                     </Col>
 
-                    <Col xs={0} md={1}>
+                    <Col md={1} className="hidden-xs">
                       <div
                         style={{
                           borderLeft: "1px solid #f0f0f0",
@@ -624,15 +679,55 @@ const Setting: React.FC = () => {
                               style={{ borderRadius: 8 }}
                             >
                               <Row justify="space-between" align="middle">
-                                <Col>
-                                  <Text strong>{item.name}</Text>
-                                  <br />
-                                <Text type="secondary">
-                                  {item.price} ฿ • {item.foodtype}
-                                </Text>
-                                <br />
-                                <Text>{item.description}</Text>
-                              </Col>
+                                <Col flex="1">
+                                  <Row gutter={12} align="middle">
+                                    <Col>
+                                      {item.photoUrl ? (
+                                        <img
+                                          src={item.photoUrl}
+                                          alt={item.name}
+                                          style={{
+                                            width: 60,
+                                            height: 60,
+                                            borderRadius: 8,
+                                            objectFit: 'cover',
+                                            border: '1px solid #f0f0f0'
+                                          }}
+                                        />
+                                      ) : (
+                                        <div
+                                          style={{
+                                            width: 60,
+                                            height: 60,
+                                            borderRadius: 8,
+                                            backgroundColor: '#f5f5f5',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            border: '1px solid #f0f0f0'
+                                          }}
+                                        >
+                                          <PictureOutlined style={{ color: '#d9d9d9', fontSize: 20 }} />
+                                        </div>
+                                      )}
+                                    </Col>
+                                    <Col flex="1">
+                                      <Text strong>{item.name}</Text>
+                                      <br />
+                                      <Text type="secondary">
+                                        {item.price} ฿ • {item.foodtype}
+                                      </Text>
+                                      {item.description && (
+                                        <>
+                                          <br />
+                                          <Text type="secondary" style={{ fontSize: '12px' }}>
+                                            {item.description}
+                                          </Text>
+                                        </>
+                                      )}
+                                    </Col>
+                                  </Row>
+                                </Col>
                               <Col>
                                 <Space size="middle">
                                   <Button
@@ -911,6 +1006,37 @@ const Setting: React.FC = () => {
                 )
               }
             />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Image</label>
+            <Upload
+              beforeUpload={(file) => {
+                const isImage = file.type.startsWith('image/');
+                if (!isImage) {
+                  message.error('You can only upload image files!');
+                  return false;
+                }
+                const isLt5M = file.size / 1024 / 1024 < 5;
+                if (!isLt5M) {
+                  message.error('Image must be smaller than 5MB!');
+                  return false;
+                }
+                return false;
+              }}
+              fileList={editFileList}
+              onChange={({ fileList: newFileList }) => {
+                setEditFileList(newFileList);
+              }}
+              listType="picture-card"
+              maxCount={1}
+            >
+              {editFileList.length === 0 && (
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
           </div>
           <div>
             <span>Available: </span>
