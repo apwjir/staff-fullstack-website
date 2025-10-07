@@ -177,7 +177,6 @@ const Setting: React.FC = () => {
 
   const [isEditMenuModalVisible, setIsEditMenuModalVisible] = useState(false);
   const [editingMenu, setEditingMenu] = useState<MenuItem | null>(null);
-  const [editFileList, setEditFileList] = useState<UploadFile[]>([]);
 
   const [isEditStaffModalVisible, setIsEditStaffModalVisible] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
@@ -251,18 +250,6 @@ const Setting: React.FC = () => {
 
   const handleEditMenu = (item: MenuItem) => {
     setEditingMenu(item);
-    // Initialize with existing image if available
-    if (item.photoUrl) {
-      setEditFileList([{
-        uid: '-1',
-        name: 'current-image',
-        status: 'done',
-        url: item.photoUrl,
-        thumbUrl: item.photoUrl,
-      }]);
-    } else {
-      setEditFileList([]);
-    }
     setIsEditMenuModalVisible(true);
   };
 
@@ -270,11 +257,6 @@ const Setting: React.FC = () => {
     if (!editingMenu) return;
 
     try {
-      // Check if there's a new image file to upload
-      const newImageFile = editFileList.find(file => file.originFileObj);
-      const imageFile = newImageFile ? newImageFile.originFileObj as File : undefined;
-
-      let updatedItem: BackendMenuItem;
       const updateData = {
         name: editingMenu.name,
         price: editingMenu.price,
@@ -283,11 +265,7 @@ const Setting: React.FC = () => {
         isAvailable: editingMenu.isAvailable,
       };
 
-      if (imageFile) {
-        updatedItem = await adminApiService.updateMenuItemWithImage(editingMenu.id, updateData, imageFile);
-      } else {
-        updatedItem = await adminApiService.updateMenuItem(editingMenu.id, updateData);
-      }
+      const updatedItem = await adminApiService.updateMenuItem(editingMenu.id, updateData);
 
       const frontendItem: MenuItem = {
         id: updatedItem.id,
@@ -303,6 +281,7 @@ const Setting: React.FC = () => {
       setMenuItems((prev) =>
         prev.map((item) => (item.id === editingMenu.id ? frontendItem : item))
       );
+
       message.success("Menu item updated successfully");
     } catch (error) {
       console.error('Failed to update menu item:', error);
@@ -311,7 +290,6 @@ const Setting: React.FC = () => {
 
     setIsEditMenuModalVisible(false);
     setEditingMenu(null);
-    setEditFileList([]);
   };
 
   // ---- MENU FUNCTIONS ----
@@ -684,6 +662,7 @@ const Setting: React.FC = () => {
                                     <Col>
                                       {item.photoUrl ? (
                                         <img
+                                          key={`${item.id}-${item.photoUrl}`}
                                           src={item.photoUrl}
                                           alt={item.name}
                                           style={{
@@ -692,6 +671,10 @@ const Setting: React.FC = () => {
                                             borderRadius: 8,
                                             objectFit: 'cover',
                                             border: '1px solid #f0f0f0'
+                                          }}
+                                          onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.style.display = 'none';
                                           }}
                                         />
                                       ) : (
@@ -1008,35 +991,39 @@ const Setting: React.FC = () => {
             />
           </div>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Image</label>
-            <Upload
-              beforeUpload={(file) => {
-                const isImage = file.type.startsWith('image/');
-                if (!isImage) {
-                  message.error('You can only upload image files!');
-                  return false;
-                }
-                const isLt5M = file.size / 1024 / 1024 < 5;
-                if (!isLt5M) {
-                  message.error('Image must be smaller than 5MB!');
-                  return false;
-                }
-                return false;
-              }}
-              fileList={editFileList}
-              onChange={({ fileList: newFileList }) => {
-                setEditFileList(newFileList);
-              }}
-              listType="picture-card"
-              maxCount={1}
-            >
-              {editFileList.length === 0 && (
-                <div>
-                  <PlusOutlined />
-                  <div style={{ marginTop: 8 }}>Upload</div>
-                </div>
-              )}
-            </Upload>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Current Image</label>
+            {editingMenu?.photoUrl ? (
+              <div style={{ marginBottom: 8 }}>
+                <img
+                  src={editingMenu.photoUrl}
+                  alt={editingMenu.name}
+                  style={{
+                    width: 120,
+                    height: 120,
+                    borderRadius: 8,
+                    objectFit: 'cover',
+                    border: '1px solid #f0f0f0'
+                  }}
+                />
+              </div>
+            ) : (
+              <div style={{
+                width: 120,
+                height: 120,
+                border: '1px dashed #d9d9d9',
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 8,
+                color: '#999'
+              }}>
+                No Image
+              </div>
+            )}
+            <div style={{ color: '#999', fontSize: '12px', fontStyle: 'italic' }}>
+              Note: To change the image, please create a new menu item
+            </div>
           </div>
           <div>
             <span>Available: </span>

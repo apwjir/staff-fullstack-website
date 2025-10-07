@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import AuthProvider, { useAuth } from './components/AuthProvider';
-import LoginForm from './components/LoginForm';
+import LoginPage from './components/LoginPage';
 import Dashboard from './pages/Dashboard';
 import Order from './pages/Order';
 import Billing from './pages/Billing';
@@ -119,7 +119,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  return isAuthenticated ? <AppLayout /> : <LoginForm />;
+  return isAuthenticated ? <AppLayout /> : <LoginPage />;
 };
 
 function App() {
