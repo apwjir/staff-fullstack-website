@@ -15,6 +15,7 @@ import {
   Switch,
   ConfigProvider,
   Spin,
+  Select,
 } from "antd";
 import type { UploadFile } from "antd";
 import {
@@ -580,11 +581,17 @@ const Setting: React.FC = () => {
                           </Col>
                           <Col span={12}>
                             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Category</label>
-                            <Input
-                              placeholder="e.g. appetizers, mains"
+                            <Select
+                              placeholder="Select category"
                               value={newFoodtype}
-                              onChange={(e) => setNewFoodtype(e.target.value)}
-                            />
+                              onChange={(value) => setNewFoodtype(value)}
+                              style={{ width: '100%' }}
+                            >
+                              <Select.Option value="RICE">RICE</Select.Option>
+                              <Select.Option value="NOODLE">NOODLE</Select.Option>
+                              <Select.Option value="DESSERT">DESSERT</Select.Option>
+                              <Select.Option value="DRINK">DRINK</Select.Option>
+                            </Select>
                           </Col>
                         </Row>
                         <div>
@@ -967,15 +974,21 @@ const Setting: React.FC = () => {
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Category</label>
-            <Input
-              placeholder="Enter category"
+            <Select
+              placeholder="Select category"
               value={editingMenu?.foodtype}
-              onChange={(e) =>
+              onChange={(value) =>
                 setEditingMenu((prev) =>
-                  prev ? { ...prev, category: e.target.value } : prev
+                  prev ? { ...prev, foodtype: value } : prev
                 )
               }
-            />
+              style={{ width: '100%' }}
+            >
+              <Select.Option value="RICE">RICE</Select.Option>
+              <Select.Option value="NOODLE">NOODLE</Select.Option>
+              <Select.Option value="DESSERT">DESSERT</Select.Option>
+              <Select.Option value="DRINK">DRINK</Select.Option>
+            </Select>
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Description</label>
