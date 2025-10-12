@@ -4,6 +4,7 @@ import { adminApiService } from '../services/api';
 interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  loginWithToken: (token: string) => void;
   logout: () => void;
   loading: boolean;
 }
@@ -30,6 +31,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Check if user is already logged in
     const token = localStorage.getItem('adminToken');
     if (token) {
+      adminApiService.setAuthToken(token);
       setIsAuthenticated(true);
     }
     setLoading(false);
@@ -46,13 +48,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const loginWithToken = (token: string) => {
+    console.log('AuthProvider: Setting up OAuth login with token');
+    localStorage.setItem('adminToken', token);
+    adminApiService.setAuthToken(token);
+    setIsAuthenticated(true);
+    console.log('AuthProvider: isAuthenticated set to true');
+  };
+
   const logout = () => {
     adminApiService.logout();
     setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, loginWithToken, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

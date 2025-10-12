@@ -1,6 +1,6 @@
 // API Configuration for Admin Frontend
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-const CUSTOMER_FRONTEND_URL = import.meta.env.VITE_CUSTOMER_FRONTEND_URL || 'http://localhost:5173';
+const API_BASE_URL = import.meta.env.VITE_API_PROXY_PATH || '/api';
+// const CUSTOMER_FRONTEND_URL = import.meta.env.VITE_CUSTOMER_FRONTEND_URL || 'http://localhost:5173';
 
 // Types matching backend schema
 export interface MenuItem {
@@ -57,6 +57,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  userType: 'STAFF' | 'INTERNSHIP';
   createdAt: string;
 }
 
@@ -143,6 +144,13 @@ class AdminApiService {
     return this.request<Table>(`/tables/${id}`);
   }
 
+  async createTable(tableData: { tableNumber: number; capacity: number }): Promise<Table> {
+    return this.request<Table>('/tables', {
+      method: 'POST',
+      body: JSON.stringify(tableData),
+    });
+  }
+
   async updateTableStatus(id: number, status: 'AVAILABLE' | 'OCCUPIED'): Promise<Table> {
     return this.request<Table>(`/tables/${id}/status`, {
       method: 'PATCH',
@@ -197,6 +205,15 @@ class AdminApiService {
     return this.request<User>('/users/staff', {
       method: 'POST',
       body: JSON.stringify(userData),
+    });
+  }
+
+  async createInternshipUser(email: string): Promise<User> {
+    // Refresh token from localStorage in case it was updated
+    this.authToken = localStorage.getItem('adminToken');
+    return this.request<User>('/users/internship', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
     });
   }
 

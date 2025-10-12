@@ -57,6 +57,7 @@ interface Staff {
   id: number;
   name: string;
   email: string;
+  userType: 'STAFF' | 'INTERNSHIP';
   createdAt: string;
 }
 
@@ -135,6 +136,7 @@ const Setting: React.FC = () => {
           id: user.id,
           name: user.name,
           email: user.email,
+          userType: user.userType,
           createdAt: user.createdAt,
         }));
 
@@ -171,6 +173,7 @@ const Setting: React.FC = () => {
   const [newUser, setNewUser] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [newInternshipEmail, setNewInternshipEmail] = useState("");
 
   // ---- EDIT MODAL STATES ----
   const [isEditTableModalVisible, setIsEditTableModalVisible] = useState(false);
@@ -369,6 +372,7 @@ const Setting: React.FC = () => {
         id: createdUser.id,
         name: createdUser.name,
         email: createdUser.email,
+        userType: createdUser.userType,
         createdAt: createdUser.createdAt,
       };
 
@@ -380,6 +384,32 @@ const Setting: React.FC = () => {
     } catch (error) {
       console.error('Failed to add staff:', error);
       message.error("Failed to add staff. Please try again.");
+    }
+  };
+
+  const handleAddInternshipStaff = async () => {
+    if (!newInternshipEmail) {
+      message.error("Please enter an email address");
+      return;
+    }
+
+    try {
+      const createdUser = await adminApiService.createInternshipUser(newInternshipEmail);
+
+      const newStaff: Staff = {
+        id: createdUser.id,
+        name: createdUser.name,
+        email: createdUser.email,
+        userType: createdUser.userType,
+        createdAt: createdUser.createdAt,
+      };
+
+      setStaffs([...staffs, newStaff]);
+      setNewInternshipEmail("");
+      message.success("Internship staff added successfully. They can now login with Google OAuth using this email.");
+    } catch (error) {
+      console.error('Failed to add internship staff:', error);
+      message.error("Failed to add internship staff. Please try again.");
     }
   };
 
@@ -776,7 +806,7 @@ const Setting: React.FC = () => {
                         style={{ borderRadius: 12, marginTop: 24, padding: 16 }}
                       >
                         <Row gutter={16}>
-                          {/* Add New Staff */}
+                          {/* Add New Staff - Left Column */}
                           <Col xs={24} md={10}>
                             <Space
                               direction="vertical"
@@ -784,7 +814,7 @@ const Setting: React.FC = () => {
                               size="large"
                             >
                               <Title level={5}>
-                                <PlusOutlined /> Add New Staff
+                                <PlusOutlined /> Add New Staff (Login with Password)
                               </Title>
                               <div>
                                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Username</label>
@@ -826,6 +856,45 @@ const Setting: React.FC = () => {
                                 Add Staff
                               </Button>
                             </Space>
+
+                            <div style={{ margin: "24px 0", borderBottom: "1px solid #f0f0f0" }} />
+
+                            {/* Add Internship Staff */}
+                            <Space
+                              direction="vertical"
+                              style={{ width: "100%" }}
+                              size="large"
+                            >
+                              <Title level={5}>
+                                <PlusOutlined /> Add Internship Staff (Google OAuth Only)
+                              </Title>
+                              <div>
+                                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Email Address</label>
+                                <Input
+                                  placeholder="Enter their email address"
+                                  value={newInternshipEmail}
+                                  onChange={(e) => setNewInternshipEmail(e.target.value)}
+                                />
+                                <Text type="secondary" style={{ fontSize: '12px', marginTop: 4, display: 'block' }}>
+                                  They will login using Google OAuth with this email
+                                </Text>
+                              </div>
+                              <Button
+                                type="primary"
+                                block
+                                onClick={handleAddInternshipStaff}
+                                style={{
+                                  backgroundColor: "#1677ff",
+                                  color: "#fff",
+                                  border: "none",
+                                  borderRadius: 8,
+                                  height: 40,
+                                  fontWeight: 500,
+                                }}
+                              >
+                                Add Internship Staff
+                              </Button>
+                            </Space>
                           </Col>
 
                           <Col xs={0} md={1}>
@@ -862,11 +931,24 @@ const Setting: React.FC = () => {
                                     <Row justify="space-between" align="middle">
                                       <Col>
                                         <Text strong>{staff.name}</Text>
-                                      <br />
-                                      <Text type="secondary">
-                                        {staff.email}
-                                      </Text>
-                                    </Col>
+                                        <br />
+                                        <Text type="secondary">
+                                          {staff.email}
+                                        </Text>
+                                        <br />
+                                        <Text
+                                          style={{
+                                            fontSize: '12px',
+                                            padding: '2px 6px',
+                                            borderRadius: 4,
+                                            backgroundColor: staff.userType === 'STAFF' ? '#f6ffed' : '#fff7e6',
+                                            color: staff.userType === 'STAFF' ? '#389e0d' : '#d48806',
+                                            border: staff.userType === 'STAFF' ? '1px solid #b7eb8f' : '1px solid #ffec3d',
+                                          }}
+                                        >
+                                          {staff.userType === 'STAFF' ? 'Staff (Password)' : 'Internship (OAuth)'}
+                                        </Text>
+                                      </Col>
                                     <Col>
                                       <Space size="middle">
                                         <EditOutlined

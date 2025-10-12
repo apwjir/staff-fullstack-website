@@ -9,8 +9,24 @@ const { Title, Text } = Typography;
 const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, loginWithToken } = useAuth();
   const navigate = useNavigate();
+
+  // Check for OAuth callback token
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (token) {
+      console.log('OAuth token detected:', token.substring(0, 20) + '...');
+      // Use the new loginWithToken method to properly authenticate
+      loginWithToken(token);
+      message.success('Google login successful!');
+      // Clean up URL by replacing the current history entry
+      window.history.replaceState({}, '', window.location.pathname);
+      // Navigate will happen automatically via auth state change
+    }
+  }, [navigate, loginWithToken]);
 
   // Apply full-screen styles only for login page
   React.useEffect(() => {
@@ -65,8 +81,8 @@ const LoginPage: React.FC = () => {
 
   const handleGoogleLogin = () => {
     setGoogleLoading(true);
-    message.info('Google OAuth coming soon for internship members!');
-    setTimeout(() => setGoogleLoading(false), 1000);
+    // Redirect to Google OAuth endpoint
+    window.location.href = `${import.meta.env.VITE_API_PROXY_PATH || '/api'}/auth/google`;
   };
 
   return (
