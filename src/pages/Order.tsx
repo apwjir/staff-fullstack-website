@@ -245,12 +245,21 @@ export default function Order() {
 
                 {/* Items */}
                 {order.items.map((item) => (
-                  <Row justify="space-between" key={item.id}>
-                    <Text>
-                      {item.quantity} x {item.menuItem?.name}
-                    </Text>
-                    <Text strong>{item.menuItem?.price} ฿</Text>
-                  </Row>
+                  <div key={item.id} style={{ marginBottom: 8 }}>
+                    <Row justify="space-between">
+                      <Text>
+                        {item.quantity} x {item.menuItem?.name}
+                      </Text>
+                      <Text strong>{item.menuItem?.price} ฿</Text>
+                    </Row>
+                    {item.note && (
+                      <Row style={{ marginTop: 4, paddingLeft: 16 }}>
+                        <Text type="secondary" style={{ fontSize: 12, fontStyle: 'italic' }}>
+                          Note: {item.note}
+                        </Text>
+                      </Row>
+                    )}
+                  </div>
                 ))}
 
                 {/* Action buttons */}
