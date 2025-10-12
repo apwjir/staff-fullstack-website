@@ -422,13 +422,32 @@ const Setting: React.FC = () => {
     setIsEditStaffModalVisible(true);
   };
 
-  const handleSaveEditStaff = () => {
-    if (editingStaff) {
+  const handleSaveEditStaff = async () => {
+    if (!editingStaff) return;
+
+    try {
+      const updatedUser = await adminApiService.updateUser(editingStaff.id, {
+        name: editingStaff.name
+      });
+
+      const updatedStaff: Staff = {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        userType: updatedUser.userType,
+        createdAt: updatedUser.createdAt,
+      };
+
       setStaffs((prev) =>
-        prev.map((s) => (s.id === editingStaff.id ? editingStaff : s))
+        prev.map((s) => (s.id === editingStaff.id ? updatedStaff : s))
       );
-      message.success("แก้ไข Staff สำเร็จ");
+
+      message.success("Staff username updated successfully");
+    } catch (error) {
+      console.error('Failed to update staff:', error);
+      message.error("Failed to update staff. Please try again.");
     }
+
     setIsEditStaffModalVisible(false);
     setEditingStaff(null);
   };
@@ -883,7 +902,7 @@ const Setting: React.FC = () => {
                                 block
                                 onClick={handleAddInternshipStaff}
                                 style={{
-                                  backgroundColor: "#1677ff",
+                                  backgroundColor: "#000000ff",
                                   color: "#fff",
                                   border: "none",
                                   borderRadius: 8,
@@ -1144,9 +1163,9 @@ const Setting: React.FC = () => {
           maskStyle={{ backdropFilter: "blur(4px)" }}
         >
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Name</label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Username</label>
             <Input
-              placeholder="Enter staff name"
+              placeholder="Enter staff username"
               value={editingStaff?.name}
               onChange={(e) =>
                 setEditingStaff((prev) =>
@@ -1158,26 +1177,34 @@ const Setting: React.FC = () => {
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Email</label>
             <Input
-              placeholder="Enter email address"
+              placeholder="Email cannot be changed"
               value={editingStaff?.email}
-              onChange={(e) =>
-                setEditingStaff((prev) =>
-                  prev ? { ...prev, email: e.target.value } : prev
-                )
-              }
+              disabled
+              style={{
+                backgroundColor: '#f5f5f5',
+                color: '#999',
+                cursor: 'not-allowed'
+              }}
             />
+            <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: 4 }}>
+              Email cannot be changed for security reasons
+            </Text>
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Password</label>
             <Input.Password
-              placeholder="Enter password"
-              value={editingStaff?.password}
-              onChange={(e) =>
-                setEditingStaff((prev) =>
-                  prev ? { ...prev, password: e.target.value } : prev
-                )
-              }
+              placeholder="Password cannot be changed here"
+              value="••••••••••••"
+              disabled
+              style={{
+                backgroundColor: '#f5f5f5',
+                color: '#999',
+                cursor: 'not-allowed'
+              }}
             />
+            <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: 4 }}>
+              Password cannot be changed here for security reasons
+            </Text>
           </div>
         </Modal>
       </Layout.Content>

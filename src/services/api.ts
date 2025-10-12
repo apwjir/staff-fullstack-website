@@ -190,6 +190,13 @@ class AdminApiService {
     });
   }
 
+  async updateUser(id: number, userData: { name?: string }): Promise<User> {
+    return this.request<User>(`/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(userData),
+    });
+  }
+
   // Menu API
   async getMenuItems(): Promise<MenuItem[]> {
     return this.request<MenuItem[]>('/menu');
