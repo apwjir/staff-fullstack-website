@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Typography, message, Divider, ConfigProvider } from 'antd';
+import { Form, Input, Button, Typography, message, Divider, ConfigProvider, App } from 'antd';
 import { UserOutlined, LockOutlined, GoogleOutlined } from '@ant-design/icons';
 import { useAuth } from './AuthProvider';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 
@@ -11,13 +11,28 @@ const LoginPage: React.FC = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const { login, loginWithToken } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { notification } = App.useApp();
 
-  // Check if user just logged in via OAuth (cookie-based)
+  // Check for OAuth error from callback and display it
   React.useEffect(() => {
-    // Since we now use cookies, just check if user is authenticated
-    // OAuth callback will redirect here directly with cookie already set
-    // No need to handle token from URL anymore
-  }, []);
+    const error = searchParams.get('error');
+    if (error) {
+      const errorMessage = decodeURIComponent(error);
+
+      // Use App's notification hook which works with themes
+      notification.error({
+        message: 'Access Denied',
+        description: errorMessage,
+        duration: 8,
+        placement: 'topRight',
+      });
+
+      // Clear the error from URL without reloading the page
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [searchParams, notification]);
 
   // Apply full-screen styles only for login page
   React.useEffect(() => {

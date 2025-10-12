@@ -8,7 +8,7 @@ import Billing from "./pages/Billing.tsx";
 import Navbar from "./components/Nav.tsx";
 import LoginPage from "./components/LoginPage.tsx";
 import AuthProvider, { useAuth } from "./components/AuthProvider.tsx";
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App } from 'antd';
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -65,9 +65,11 @@ createRoot(document.getElementById("root")!).render(
         },
       }}
     >
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
+      <App>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </App>
     </ConfigProvider>
   </StrictMode>
 );
