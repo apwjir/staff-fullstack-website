@@ -12,21 +12,12 @@ const LoginPage: React.FC = () => {
   const { login, loginWithToken } = useAuth();
   const navigate = useNavigate();
 
-  // Check for OAuth callback token
+  // Check if user just logged in via OAuth (cookie-based)
   React.useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-
-    if (token) {
-      console.log('OAuth token detected:', token.substring(0, 20) + '...');
-      // Use the new loginWithToken method to properly authenticate
-      loginWithToken(token);
-      message.success('Google login successful!');
-      // Clean up URL by replacing the current history entry
-      window.history.replaceState({}, '', window.location.pathname);
-      // Navigate will happen automatically via auth state change
-    }
-  }, [navigate, loginWithToken]);
+    // Since we now use cookies, just check if user is authenticated
+    // OAuth callback will redirect here directly with cookie already set
+    // No need to handle token from URL anymore
+  }, []);
 
   // Apply full-screen styles only for login page
   React.useEffect(() => {

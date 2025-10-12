@@ -99,7 +99,6 @@ const Setting: React.FC = () => {
 
         try {
           console.log('Attempting to load users...');
-          console.log('Auth token available:', !!localStorage.getItem('adminToken'));
           backendUsers = await adminApiService.getUsers();
           console.log('Users loaded successfully:', backendUsers.length, backendUsers);
         } catch (error) {

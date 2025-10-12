@@ -64,22 +64,9 @@ export interface User {
 // API Service Class
 class AdminApiService {
   private baseUrl: string;
-  private authToken: string | null = null;
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
-    // Try to get token from localStorage
-    this.authToken = localStorage.getItem('adminToken');
-  }
-
-  setAuthToken(token: string) {
-    this.authToken = token;
-    localStorage.setItem('adminToken', token);
-  }
-
-  clearAuthToken() {
-    this.authToken = null;
-    localStorage.removeItem('adminToken');
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -88,20 +75,12 @@ class AdminApiService {
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
-        ...(this.authToken && { 'Authorization': `Bearer ${this.authToken}` }),
         ...options.headers,
       },
+      credentials: 'include', // Include cookies in requests
       ...options,
     };
 
-    // Debug logging for user endpoint
-    if (endpoint === '/users') {
-      console.log('Making request to /users with config:', {
-        url,
-        hasToken: !!this.authToken,
-        authHeader: config.headers?.Authorization ? 'Present' : 'Missing'
-      });
-    }
 
     try {
       const response = await fetch(url, config);
@@ -121,18 +100,19 @@ class AdminApiService {
   }
 
   // Auth methods
-  async login(email: string, password: string): Promise<{ access_token: string; user: User }> {
-    const result = await this.request<{ access_token: string; user: User }>('/auth/login', {
+  async login(email: string, password: string): Promise<{ user: User }> {
+    const result = await this.request<{ user: User }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
 
-    this.setAuthToken(result.access_token);
+    // Token is now in cookie, no need to store it
     return result;
   }
 
   async logout() {
-    this.clearAuthToken();
+    // Call backend to clear cookie
+    await this.request('/auth/logout', { method: 'POST' });
   }
 
   // Tables API
@@ -193,15 +173,10 @@ class AdminApiService {
 
   // Users API
   async getUsers(): Promise<User[]> {
-    // Refresh token from localStorage in case it was updated
-    this.authToken = localStorage.getItem('adminToken');
-    console.log('Getting users with token:', this.authToken ? 'Present' : 'Missing');
     return this.request<User[]>('/users');
   }
 
   async createUser(userData: { name: string; email: string; password: string }): Promise<User> {
-    // Refresh token from localStorage in case it was updated
-    this.authToken = localStorage.getItem('adminToken');
     return this.request<User>('/users/staff', {
       method: 'POST',
       body: JSON.stringify(userData),
@@ -209,8 +184,6 @@ class AdminApiService {
   }
 
   async createInternshipUser(email: string): Promise<User> {
-    // Refresh token from localStorage in case it was updated
-    this.authToken = localStorage.getItem('adminToken');
     return this.request<User>('/users/internship', {
       method: 'POST',
       body: JSON.stringify({ email }),
@@ -253,9 +226,7 @@ class AdminApiService {
     const url = `${this.baseUrl}/menu/with-image`;
     const config: RequestInit = {
       method: 'POST',
-      headers: {
-        ...(this.authToken && { 'Authorization': `Bearer ${this.authToken}` }),
-      },
+      credentials: 'include',
       body: formData,
     };
 
@@ -293,9 +264,7 @@ class AdminApiService {
     const url = `${this.baseUrl}/menu/${id}/with-image`;
     const config: RequestInit = {
       method: 'PATCH',
-      headers: {
-        ...(this.authToken && { 'Authorization': `Bearer ${this.authToken}` }),
-      },
+      credentials: 'include',
       body: formData,
     };
 

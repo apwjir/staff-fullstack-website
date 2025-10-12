@@ -28,13 +28,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      adminApiService.setAuthToken(token);
-      setIsAuthenticated(true);
-    }
-    setLoading(false);
+    // Check if user is already logged in via cookie
+    const checkAuthStatus = async () => {
+      try {
+        // Try to make an authenticated request to see if cookie is valid
+        await adminApiService.getUsers();
+        setIsAuthenticated(true);
+      } catch (error) {
+        // Cookie is invalid or expired
+        setIsAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuthStatus();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -49,11 +57,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const loginWithToken = (token: string) => {
-    console.log('AuthProvider: Setting up OAuth login with token');
-    localStorage.setItem('adminToken', token);
-    adminApiService.setAuthToken(token);
+    // No longer needed since OAuth now uses cookies
+    // This method is kept for backwards compatibility but does nothing
+    console.log('OAuth login via cookie already handled by backend');
     setIsAuthenticated(true);
-    console.log('AuthProvider: isAuthenticated set to true');
   };
 
   const logout = () => {
