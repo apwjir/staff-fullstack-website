@@ -13,7 +13,9 @@ import {
   message,
   Layout,
   Spin,
+  DatePicker,
 } from "antd";
+import dayjs, { Dayjs } from 'dayjs';
 import { adminApiService, type Bill as BackendBill } from "../services/api";
 
 const { Title, Text } = Typography;
@@ -45,6 +47,13 @@ const Billing: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"All" | "Paid" | "Unpaid">("All");
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs()); // Default to today
+
+  // Helper function to check if bill is from selected date
+  const isBillFromSelectedDate = (billDate: string, targetDate: Dayjs) => {
+    const billDay = dayjs(billDate);
+    return billDay.format('YYYY-MM-DD') === targetDate.format('YYYY-MM-DD');
+  };
 
   // Load bills from API
   useEffect(() => {
@@ -58,8 +67,8 @@ const Billing: React.FC = () => {
           id: bill.id,
           tableId: bill.tableId,
           isPaid: bill.isPaid,
-          createdAt: new Date(bill.createdAt).toLocaleString(),
-          paidAt: bill.paidAt ? new Date(bill.paidAt).toLocaleString() : null,
+          createdAt: bill.createdAt, // Keep original ISO string for filtering
+          paidAt: bill.paidAt,
           totalAmount: bill.totalAmount,
           orders: bill.orders,
         }));
@@ -76,17 +85,20 @@ const Billing: React.FC = () => {
     loadBills();
   }, []);
 
-  const filteredBills = bills.filter(
+  // Filter bills by selected date first
+  const dateFilteredBills = bills.filter(bill => isBillFromSelectedDate(bill.createdAt, selectedDate));
+
+  const filteredBills = dateFilteredBills.filter(
     (bill) =>
       filter === "All" ||
       (filter === "Paid" && bill.isPaid) ||
       (filter === "Unpaid" && !bill.isPaid)
   );
 
-  const totalBills = bills.length;
-  const unpaidBills = bills.filter((b) => !b.isPaid).length;
-  const paidBills = bills.filter((b) => b.isPaid).length;
-  const revenueToday = bills
+  const totalBills = dateFilteredBills.length;
+  const unpaidBills = dateFilteredBills.filter((b) => !b.isPaid).length;
+  const paidBills = dateFilteredBills.filter((b) => b.isPaid).length;
+  const revenueToday = dateFilteredBills
     .filter((b) => b.isPaid)
     .reduce((acc, b) => acc + b.totalAmount, 0);
 
@@ -104,7 +116,7 @@ const Billing: React.FC = () => {
       if (selectedBill?.id === billId) {
         setSelectedBill({ ...selectedBill, isPaid: true, paidAt: now });
       }
-      message.success("Bill closed successfully ✅");
+      message.success("Bill closed successfully");
     } catch (error) {
       message.error("Failed to close bill. Please try again.");
       console.error("Error closing bill:", error);
@@ -139,7 +151,7 @@ const Billing: React.FC = () => {
             { label: "Unpaid", value: unpaidBills, color: "red" },
             { label: "Paid", value: paidBills, color: "green" },
             {
-              label: "Revenue Today",
+              label: `Revenue (${selectedDate.format('MMM DD')})`,
               value: `$${revenueToday.toFixed(2)}`,
               color: "#1890ff",
             },
@@ -160,28 +172,35 @@ const Billing: React.FC = () => {
           <Row gutter={16}>
             {/* Left: Bill List */}
             <Col xs={24} md={8}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: 16,
-                }}
-              >
-                <Text strong style={{ fontSize: 16 }}>
+              <div style={{ marginBottom: 16 }}>
+                <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
                   Bills
                 </Text>
-                <Select
-                  value={filter}
-                  onChange={(val) =>
-                    setFilter(val as "All" | "Paid" | "Unpaid")
-                  }
-                  options={[
-                    { label: "All", value: "All" },
-                    { label: "Paid", value: "Paid" },
-                    { label: "Unpaid", value: "Unpaid" },
-                  ]}
-                  style={{ width: 100 }}
-                />
+
+                {/* Date and Status Filters */}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                  <DatePicker
+                    value={selectedDate}
+                    onChange={(date) => setSelectedDate(date || dayjs())}
+                    format="YYYY-MM-DD"
+                    style={{ flex: 1, minWidth: 120 }}
+                    size="small"
+                    placeholder="Select date"
+                  />
+                  <Select
+                    value={filter}
+                    onChange={(val) =>
+                      setFilter(val as "All" | "Paid" | "Unpaid")
+                    }
+                    options={[
+                      { label: "All", value: "All" },
+                      { label: "Paid", value: "Paid" },
+                      { label: "Unpaid", value: "Unpaid" },
+                    ]}
+                    style={{ flex: 1, minWidth: 80 }}
+                    size="small"
+                  />
+                </div>
               </div>
               <Space direction="vertical" style={{ width: "100%" }}>
                 {filteredBills.map((bill) => (
@@ -216,7 +235,7 @@ const Billing: React.FC = () => {
                         </Space>
                         {bill.isPaid && bill.paidAt && (
                           <Text type="success" style={{ fontSize: 13 }}>
-                            ✅ Paid at {bill.paidAt}
+                            Paid at {dayjs(bill.paidAt).format('MMM DD, YYYY HH:mm')}
                           </Text>
                         )}
                       </Space>
@@ -252,12 +271,12 @@ const Billing: React.FC = () => {
                           {selectedBill.isPaid ? "Paid" : "Unpaid"}
                         </Title>
                         <div>
-                          <Text>Created: {selectedBill.createdAt}</Text>
+                          <Text>Created: {dayjs(selectedBill.createdAt).format('MMM DD, YYYY HH:mm')}</Text>
                         </div>
                         {selectedBill.paidAt && (
                           <div>
                             <Text type="success">
-                              Paid at: {selectedBill.paidAt}
+                              Paid at: {dayjs(selectedBill.paidAt).format('MMM DD, YYYY HH:mm')}
                             </Text>
                           </div>
                         )}
@@ -285,7 +304,7 @@ const Billing: React.FC = () => {
                         <>
                           <Text strong>Table: {selectedBill.tableId}</Text>
                           <br />
-                          <Text>Date: {selectedBill.createdAt}</Text>
+                          <Text>Date: {dayjs(selectedBill.createdAt).format('MMM DD, YYYY HH:mm')}</Text>
                         </>
                       </div>
 

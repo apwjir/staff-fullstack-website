@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Layout, Card, Row, Col, Button, Tag, Typography, Select, message, Spin } from "antd";
+import { Layout, Card, Row, Col, Button, Tag, Typography, Select, message, Spin, DatePicker } from "antd";
 import {
   FireOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons";
+import dayjs, { Dayjs } from 'dayjs';
 import { adminApiService, mapOrderStatus, mapFrontendOrderStatus, type Order as BackendOrder, type OrderItem as BackendOrderItem, type MenuItem } from "../services/api";
 
 const { Content } = Layout;
@@ -36,6 +37,13 @@ export default function Order() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
+  const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs()); // Default to today
+
+  // Helper function to check if order is from selected date
+  const isOrderFromSelectedDate = (orderDate: string, targetDate: Dayjs) => {
+    const orderDay = dayjs(orderDate);
+    return orderDay.format('YYYY-MM-DD') === targetDate.format('YYYY-MM-DD');
+  };
 
   // Load orders from API
   useEffect(() => {
@@ -107,10 +115,13 @@ export default function Order() {
     }
   };
 
-  const totalOrders = orders.length;
-  const waitingCount = orders.filter((o) => o.status === "waiting").length;
-  const cookingCount = orders.filter((o) => o.status === "cooking").length;
-  const doneCount = orders.filter((o) => o.status === "done").length;
+  // Filter orders by selected date first, then by status
+  const dateFilteredOrders = orders.filter(order => isOrderFromSelectedDate(order.createdAt, selectedDate));
+
+  const totalOrders = dateFilteredOrders.length;
+  const waitingCount = dateFilteredOrders.filter((o) => o.status === "waiting").length;
+  const cookingCount = dateFilteredOrders.filter((o) => o.status === "cooking").length;
+  const doneCount = dateFilteredOrders.filter((o) => o.status === "done").length;
 
   const getTag = (status: string) => {
     switch (status) {
@@ -138,7 +149,7 @@ export default function Order() {
   };
 
   const filteredOrders =
-    filter === "all" ? orders : orders.filter((o) => o.status === filter);
+    filter === "all" ? dateFilteredOrders : dateFilteredOrders.filter((o) => o.status === filter);
 
   if (loading) {
     return (
@@ -178,26 +189,40 @@ export default function Order() {
           ))}
         </Row>
 
-        {/* Filter Dropdown */}
+        {/* Filters */}
         <div
           style={{
             marginTop: "2rem",
             display: "flex",
             alignItems: "center",
-            gap: 12,
+            gap: 24,
+            flexWrap: "wrap",
           }}
         >
-          <Text strong>Filter by status:</Text>
-          <Select
-            value={filter}
-            style={{ width: 200 }}
-            onChange={(value) => setFilter(value)}
-          >
-            <Option value="all">All Orders</Option>
-            <Option value="waiting">Waiting</Option>
-            <Option value="cooking">Cooking</Option>
-            <Option value="done">Done</Option>
-          </Select>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Text strong>Filter by date:</Text>
+            <DatePicker
+              value={selectedDate}
+              onChange={(date) => setSelectedDate(date || dayjs())}
+              format="YYYY-MM-DD"
+              style={{ width: 150 }}
+              placeholder="Select date"
+            />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Text strong>Filter by status:</Text>
+            <Select
+              value={filter}
+              style={{ width: 150 }}
+              onChange={(value) => setFilter(value)}
+            >
+              <Option value="all">All Orders</Option>
+              <Option value="waiting">Waiting</Option>
+              <Option value="cooking">Cooking</Option>
+              <Option value="done">Done</Option>
+            </Select>
+          </div>
         </div>
 
         {/* Orders List */}
@@ -214,6 +239,7 @@ export default function Order() {
                   </Col>
                   <Col style={{ display: "flex", justifyContent: "flex-end" }}>
                     {getTag(order.status)}
+                    {dayjs(order.createdAt).format('HH:mm A')}
                   </Col>
                 </Row>
 
@@ -245,10 +271,10 @@ export default function Order() {
                         updateOrderStatus(order.id, statusKey as "waiting" | "cooking" | "done")
                       }
                       style={{
-                        backgroundColor: "#000000", // พื้นหลังดำ
-                        color: "#ffffff", // ตัวอักษรขาว
-                        border: "none", // เอา border ออก (ไม่จำเป็นก็ได้)
-                        borderRadius: 8, // มุมโค้งเล็กน้อย
+                        backgroundColor: "#000000",
+                        color: "#ffffff",
+                        border: "none", 
+                        borderRadius: 8,
                         // height: 40,
                         fontWeight: 500,
                       }}
