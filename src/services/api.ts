@@ -143,6 +143,19 @@ class AdminApiService {
     });
   }
 
+  async updateTable(id: number, tableData: { tableNumber?: number; capacity?: number }): Promise<Table> {
+    return this.request<Table>(`/tables/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(tableData),
+    });
+  }
+
+  async deleteTable(id: number): Promise<void> {
+    return this.request<void>(`/tables/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async generateTableQR(tableId: number): Promise<{ qrCode: string; token: string }> {
     return this.request<{ qrCode: string; token: string }>(`/tables/${tableId}/qr`);
   }
@@ -199,6 +212,12 @@ class AdminApiService {
     return this.request<User>(`/users/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(userData),
+    });
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    return this.request<void>(`/users/${id}`, {
+      method: 'DELETE',
     });
   }
 

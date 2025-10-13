@@ -221,17 +221,52 @@ const Setting: React.FC = () => {
     }
   };
 
-  const handleDeleteTable = (id: number) => {
-    setTables(tables.filter((t) => t.id !== id));
-    message.success("ลบโต๊ะสำเร็จ");
+  const handleDeleteTable = async (id: number) => {
+    try {
+      await adminApiService.deleteTable(id);
+      setTables(tables.filter((t) => t.id !== id));
+      message.success("Table deleted successfully");
+    } catch (error) {
+      console.error('Failed to delete table:', error);
+      message.error("Failed to delete table. Please try again.");
+    }
   };
 
-  const handleToggleAvailability = (id: number) => {
-    setMenuItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, isAvailable: !item.isAvailable } : item
-      )
-    );
+  const handleToggleAvailability = async (id: number) => {
+    const item = menuItems.find(item => item.id === id);
+    if (!item) return;
+
+    try {
+      const updatedItem = await adminApiService.updateMenuItem(id, {
+        name: item.name,
+        price: item.price,
+        foodtype: item.foodtype as 'RICE' | 'NOODLE' | 'DESSERT' | 'DRINK',
+        description: item.description,
+        isAvailable: !item.isAvailable,
+      });
+
+      const frontendItem: MenuItem = {
+        id: updatedItem.id,
+        name: updatedItem.name,
+        price: updatedItem.price,
+        foodtype: updatedItem.foodtype,
+        description: updatedItem.description,
+        isAvailable: updatedItem.isAvailable,
+        photoUrl: updatedItem.photoUrl,
+        photoId: updatedItem.photoId,
+      };
+
+      setMenuItems((prev) =>
+        prev.map((menuItem) =>
+          menuItem.id === id ? frontendItem : menuItem
+        )
+      );
+
+      message.success(`Menu item ${updatedItem.isAvailable ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+      console.error('Failed to toggle availability:', error);
+      message.error("Failed to update menu item availability. Please try again.");
+    }
   };
 
   // ---- EDIT FUNCTIONS ----
@@ -240,13 +275,32 @@ const Setting: React.FC = () => {
     setIsEditTableModalVisible(true);
   };
 
-  const handleSaveEditTable = () => {
-    if (editingTable) {
+  const handleSaveEditTable = async () => {
+    if (!editingTable) return;
+
+    try {
+      const updatedTable = await adminApiService.updateTable(editingTable.id, {
+        tableNumber: editingTable.tableNumber,
+        capacity: editingTable.seats
+      });
+
+      const frontendTable: Table = {
+        id: updatedTable.id,
+        tableNumber: updatedTable.tableNumber,
+        seats: updatedTable.capacity,
+        status: mapTableStatus(updatedTable.status),
+        qrCodeToken: updatedTable.qrCodeToken,
+      };
+
       setTables((prev) =>
-        prev.map((t) => (t.id === editingTable.id ? editingTable : t))
+        prev.map((t) => (t.id === editingTable.id ? frontendTable : t))
       );
-      message.success("แก้ไขโต๊ะสำเร็จ");
+      message.success("Table updated successfully");
+    } catch (error) {
+      console.error('Failed to update table:', error);
+      message.error("Failed to update table. Please try again.");
     }
+
     setIsEditTableModalVisible(false);
     setEditingTable(null);
   };
@@ -346,9 +400,15 @@ const Setting: React.FC = () => {
     }
   };
 
-  const handleDeleteMenuItem = (id: number) => {
-    setMenuItems(menuItems.filter((item) => item.id !== id));
-    message.success("ลบเมนูสำเร็จ");
+  const handleDeleteMenuItem = async (id: number) => {
+    try {
+      await adminApiService.deleteMenuItem(id);
+      setMenuItems(menuItems.filter((item) => item.id !== id));
+      message.success("Menu item deleted successfully");
+    } catch (error) {
+      console.error('Failed to delete menu item:', error);
+      message.error("Failed to delete menu item. Please try again.");
+    }
   };
 
   // ---- STAFF FUNCTIONS ----
@@ -412,9 +472,15 @@ const Setting: React.FC = () => {
     }
   };
 
-  const handleDeleteStaff = (id: number) => {
-    setStaffs(staffs.filter((s) => s.id !== id));
-    message.success("ลบ Staff สำเร็จ");
+  const handleDeleteStaff = async (id: number) => {
+    try {
+      await adminApiService.deleteUser(id);
+      setStaffs(staffs.filter((s) => s.id !== id));
+      message.success("Staff deleted successfully");
+    } catch (error) {
+      console.error('Failed to delete staff:', error);
+      message.error("Failed to delete staff. Please try again.");
+    }
   };
 
   const handleEditStaff = (staff: Staff) => {
@@ -1014,10 +1080,10 @@ const Setting: React.FC = () => {
             <Input
               placeholder="Enter table number"
               type="number"
-              value={editingTable?.id}
+              value={editingTable?.tableNumber}
               onChange={(e) =>
                 setEditingTable((prev) =>
-                  prev ? { ...prev, number: parseInt(e.target.value) || 0 } : prev
+                  prev ? { ...prev, tableNumber: parseInt(e.target.value) || 0 } : prev
                 )
               }
             />
@@ -1144,7 +1210,7 @@ const Setting: React.FC = () => {
               checked={editingMenu?.isAvailable}
               onChange={(checked) =>
                 setEditingMenu((prev) =>
-                  prev ? { ...prev, available: checked } : prev
+                  prev ? { ...prev, isAvailable: checked } : prev
                 )
               }
             />

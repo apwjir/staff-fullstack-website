@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { notification } from 'antd';
 
@@ -29,6 +29,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [connectedTables, setConnectedTables] = useState<number[]>([]);
+  const [hasJoinedStaff, setHasJoinedStaff] = useState(false);
 
   useEffect(() => {
     // Connect to WebSocket server
@@ -79,6 +80,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     // Staff-specific event handlers
     newSocket.on('joined_staff', (data) => {
       console.log('👥 Joined staff room:', data);
+      setHasJoinedStaff(true);
       notification.info({
         message: 'Staff Mode',
         description: 'You are now receiving real-time updates',
@@ -221,16 +223,28 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     return () => {
       console.log('🔌 Cleaning up WebSocket connection');
+      setHasJoinedStaff(false);
       newSocket.close();
     };
   }, []);
 
-  // Helper functions
-  const joinStaff = () => {
-    if (socket && connected) {
+  // Auto-join staff room when connected
+  useEffect(() => {
+    if (socket && connected && !hasJoinedStaff) {
+      console.log('🔄 Auto-joining staff room...');
       socket.emit('join_staff');
     }
-  };
+  }, [socket, connected, hasJoinedStaff]);
+
+  // Helper functions
+  const joinStaff = useCallback(() => {
+    if (socket && connected && !hasJoinedStaff) {
+      console.log('📞 Manual staff room join requested...');
+      socket.emit('join_staff');
+    } else if (hasJoinedStaff) {
+      console.log('ℹ️ Already joined staff room, skipping...');
+    }
+  }, [socket, connected, hasJoinedStaff]);
 
   const leaveStaff = () => {
     if (socket && connected) {

@@ -17,6 +17,8 @@ import {
 } from "antd";
 import dayjs, { Dayjs } from 'dayjs';
 import { adminApiService, type Bill as BackendBill } from "../services/api";
+import { useSocket } from "../contexts/SocketContext";
+import { Badge } from "antd";
 
 const { Title, Text } = Typography;
 
@@ -48,6 +50,7 @@ const Billing: React.FC = () => {
   const [filter, setFilter] = useState<"All" | "Paid" | "Unpaid">("All");
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs()); // Default to today
+  const { connected } = useSocket();
 
   // Helper function to check if bill is from selected date
   const isBillFromSelectedDate = (billDate: string, targetDate: Dayjs) => {
@@ -84,6 +87,108 @@ const Billing: React.FC = () => {
 
     loadBills();
   }, []);
+
+
+  // Listen for real-time bill events
+  useEffect(() => {
+    const handleBillCreated = async (event: CustomEvent) => {
+      console.log('💰 Bill created event:', event.detail);
+      const newBillData = event.detail;
+
+      // Fetch the complete bill data from API to get full details
+      try {
+        const allBills = await adminApiService.getBills();
+        const newBill = allBills.find((bill: BackendBill) => bill.id === newBillData.id);
+
+        if (newBill) {
+          const frontendBill: Bill = {
+            id: newBill.id,
+            tableId: newBill.tableId,
+            isPaid: newBill.isPaid,
+            createdAt: newBill.createdAt,
+            paidAt: newBill.paidAt,
+            totalAmount: newBill.totalAmount,
+            orders: newBill.orders,
+          };
+
+          // Add new bill to the beginning of the list
+          setBills(prev => {
+            const exists = prev.some(bill => bill.id === frontendBill.id);
+            if (exists) return prev;
+            return [frontendBill, ...prev];
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch new bill details:', error);
+      }
+    };
+
+    const handleBillUpdated = (event: CustomEvent) => {
+      console.log('💰 Bill updated event:', event.detail);
+      const updatedBillData = event.detail;
+
+      // Update bill in state
+      setBills(prev => prev.map(bill => {
+        if (bill.id === updatedBillData.id) {
+          return {
+            ...bill,
+            totalAmount: updatedBillData.totalAmount || bill.totalAmount,
+            isPaid: updatedBillData.isPaid !== undefined ? updatedBillData.isPaid : bill.isPaid,
+            paidAt: updatedBillData.paidAt || bill.paidAt,
+          };
+        }
+        return bill;
+      }));
+
+      // Update selected bill if it's the one being updated
+      if (selectedBill?.id === updatedBillData.id) {
+        setSelectedBill(prev => prev ? {
+          ...prev,
+          totalAmount: updatedBillData.totalAmount || prev.totalAmount,
+          isPaid: updatedBillData.isPaid !== undefined ? updatedBillData.isPaid : prev.isPaid,
+          paidAt: updatedBillData.paidAt || prev.paidAt,
+        } : null);
+      }
+    };
+
+    const handleBillPaid = (event: CustomEvent) => {
+      console.log('💰 Bill paid event:', event.detail);
+      const paidBillData = event.detail;
+
+      // Update bill as paid
+      setBills(prev => prev.map(bill => {
+        if (bill.id === paidBillData.id) {
+          return {
+            ...bill,
+            isPaid: true,
+            paidAt: paidBillData.paidAt || new Date().toISOString(),
+          };
+        }
+        return bill;
+      }));
+
+      // Update selected bill if it's the one being paid
+      if (selectedBill?.id === paidBillData.id) {
+        setSelectedBill(prev => prev ? {
+          ...prev,
+          isPaid: true,
+          paidAt: paidBillData.paidAt || new Date().toISOString(),
+        } : null);
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('billCreated', handleBillCreated as EventListener);
+    window.addEventListener('billUpdated', handleBillUpdated as EventListener);
+    window.addEventListener('billPaid', handleBillPaid as EventListener);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('billCreated', handleBillCreated as EventListener);
+      window.removeEventListener('billUpdated', handleBillUpdated as EventListener);
+      window.removeEventListener('billPaid', handleBillPaid as EventListener);
+    };
+  }, [selectedBill]);
 
   // Filter bills by selected date first
   const dateFilteredBills = bills.filter(bill => isBillFromSelectedDate(bill.createdAt, selectedDate));
@@ -139,9 +244,15 @@ const Billing: React.FC = () => {
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
       <Layout.Content style={{ margin: "0 10rem", paddingTop: "2rem" }} className="mobile-responsive-content">
         {/* Title */}
-        <Title level={2} style={{ fontSize: 32, marginBottom: 4 }} className="mobile-responsive-title">
-          Billing & Payments
-        </Title>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 4 }}>
+          <Title level={2} style={{ fontSize: 32, margin: 0 }} className="mobile-responsive-title">
+            Billing & Payments
+          </Title>
+          <Badge
+            status={connected ? 'success' : 'error'}
+            text={connected ? 'Real-time updates active' : 'Connection lost'}
+          />
+        </div>
         <Text type="secondary">Manage bills and payment processing</Text>
 
         {/* Summary Cards */}

@@ -39,13 +39,9 @@ export default function Order() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs()); // Default to today
-  const { connected, joinStaff } = useSocket();
+  const { connected } = useSocket();
 
   // Auto-join staff room when component mounts
-  useEffect(() => {
-    console.log('Order component mounted, joining staff room...');
-    joinStaff();
-  }, [joinStaff]);
 
   // Helper function to check if order is from selected date
   const isOrderFromSelectedDate = (orderDate: string, targetDate: Dayjs) => {

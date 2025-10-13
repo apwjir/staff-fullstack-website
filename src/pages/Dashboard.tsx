@@ -19,6 +19,8 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import { adminApiService, mapTableStatus, type Table as BackendTable } from "../services/api";
+import { useSocket } from "../contexts/SocketContext";
+import { Badge } from "antd";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -41,6 +43,7 @@ export default function Dashboard() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
+  const { connected } = useSocket();
 
   // Load tables from API
   useEffect(() => {
@@ -69,6 +72,8 @@ export default function Dashboard() {
 
     loadTables();
   }, []);
+
+
 
   const filteredTables =
     filter === "all" ? tables : tables.filter((t) => t.status === filter);
@@ -180,9 +185,11 @@ export default function Dashboard() {
   return (
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
       <Content style={{ margin: "0 10rem", paddingTop: "2rem" }} className="mobile-responsive-content">
-        <Title level={2} style={{ fontSize: 32, marginBottom: 4 }} className="mobile-responsive-title">
-          Table Management
-        </Title>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 4 }}>
+          <Title level={2} style={{ fontSize: 32, margin: 0 }} className="mobile-responsive-title">
+            Table Management
+          </Title>
+        </div>
         <Text type="secondary">Monitor and manage restaurant tables</Text>
 
         {/* Summary */}

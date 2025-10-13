@@ -23,13 +23,9 @@ const { Title } = Typography;
 
 const AppLayout: React.FC = () => {
   const { logout } = useAuth();
-  const { connected, joinStaff, connectedTables } = useSocket();
+  const { connected, connectedTables } = useSocket();
   const [selectedKey, setSelectedKey] = React.useState('1');
 
-  React.useEffect(() => {
-    // Automatically join staff when component mounts
-    joinStaff();
-  }, [joinStaff]);
 
   const menuItems = [
     {
