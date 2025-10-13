@@ -248,10 +248,6 @@ const Billing: React.FC = () => {
           <Title level={2} style={{ fontSize: 32, margin: 0 }} className="mobile-responsive-title">
             Billing & Payments
           </Title>
-          <Badge
-            status={connected ? 'success' : 'error'}
-            text={connected ? 'Real-time updates active' : 'Connection lost'}
-          />
         </div>
         <Text type="secondary">Manage bills and payment processing</Text>
 

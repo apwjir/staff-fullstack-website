@@ -19,8 +19,8 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import { adminApiService, mapTableStatus, type Table as BackendTable } from "../services/api";
-import { useSocket } from "../contexts/SocketContext";
-import { Badge } from "antd";
+// import { useSocket } from "../contexts/SocketContext";
+// import { Badge } from "antd";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -43,7 +43,7 @@ export default function Dashboard() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
-  const { connected } = useSocket();
+  // const { connected } = useSocket();
 
   // Load tables from API
   useEffect(() => {
