@@ -58,6 +58,7 @@ export interface User {
   name: string;
   email: string;
   userType: 'STAFF' | 'INTERNSHIP';
+  picture?: string | null;
   createdAt: string;
 }
 
@@ -113,6 +114,10 @@ class AdminApiService {
   async logout() {
     // Call backend to clear cookie
     await this.request('/auth/logout', { method: 'POST' });
+  }
+
+  async getCurrentUser(): Promise<User> {
+    return this.request<User>('/auth/me');
   }
 
   // Tables API

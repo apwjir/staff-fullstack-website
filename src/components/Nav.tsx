@@ -6,18 +6,18 @@ import {
   CreditCardOutlined,
   SettingOutlined,
   MenuOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
-import { Tabs, Flex, ConfigProvider, Button, Drawer, Grid } from "antd";
+import { Tabs, Flex, ConfigProvider, Button, Drawer, Grid, Dropdown, Avatar } from "antd";
 import type { TabsProps } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 
 function Nav() {
-  const [name] = useState("UwU");
   const [drawerVisible, setDrawerVisible] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { useBreakpoint } = Grid;
   const screens = useBreakpoint();
 
@@ -71,6 +71,19 @@ function Nav() {
           Settings
         </span>
       ),
+    },
+  ];
+
+  const profileMenuItems = [
+    {
+      key: 'logout',
+      label: (
+        <span style={{ color: '#ef4444' }}>
+          <LogoutOutlined style={{ marginRight: 8 }} />
+          Logout
+        </span>
+      ),
+      onClick: handleLogout,
     },
   ];
 
@@ -158,14 +171,14 @@ function Nav() {
         {/* Right - Welcome & Logout (Desktop/Tablet) / Menu Button (Mobile) */}
         <div style={{ flex: "0 0 auto" }}>
           <Flex align="center" gap={screens.lg ? 16 : 12}>
-            {screens.lg && (
+            {screens.lg && user && (
               <span style={{
                 fontSize: "1rem",
                 color: "#6b7280",
                 fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
                 whiteSpace: "nowrap"
               }}>
-                Welcome, {name}
+                Welcome, {user.name}
               </span>
             )}
 
@@ -201,19 +214,21 @@ function Nav() {
             ) : (
               <Button
                 type="text"
-                icon={<LogoutOutlined />}
+                icon={<LogoutOutlined style={{ fontSize: "16px" }} />}
                 onClick={handleLogout}
                 style={{
                   display: "flex",
                   alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
                   color: "#6b7280",
                   border: "1px solid #e5e7eb",
                   borderRadius: "8px",
-                  padding: screens.lg ? "8px 16px" : "6px 12px",
-                  height: "auto",
+                  padding: "0 16px",
+                  height: "40px",
                   backgroundColor: "#ffffff",
                   transition: "all 0.2s ease",
-                  fontSize: screens.lg ? "1rem" : "0.9rem"
+                  fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = "#000000";
@@ -226,7 +241,7 @@ function Nav() {
                   e.currentTarget.style.backgroundColor = "#ffffff";
                 }}
               >
-                {screens.lg ? "Logout" : "Logout"}
+                Logout
               </Button>
             )}
           </Flex>
@@ -249,13 +264,15 @@ function Nav() {
             }}>
               Restaurant
             </span>
-            <span style={{
-              fontSize: "0.9rem",
-              color: "#6b7280",
-              fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
-            }}>
-              Welcome, {name}
-            </span>
+            {user && (
+              <span style={{
+                fontSize: "0.9rem",
+                color: "#6b7280",
+                fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+              }}>
+                Welcome, {user.name}
+              </span>
+            )}
           </div>
         )}
         placement="right"
