@@ -8,6 +8,7 @@ import Billing from "./pages/Billing.tsx";
 import Navbar from "./components/Nav.tsx";
 import LoginPage from "./components/LoginPage.tsx";
 import AuthProvider, { useAuth } from "./components/AuthProvider.tsx";
+import { SocketProvider } from "./contexts/SocketContext.tsx";
 import { ConfigProvider, App } from 'antd';
 
 // Protected Route Component
@@ -67,7 +68,9 @@ createRoot(document.getElementById("root")!).render(
     >
       <App>
         <AuthProvider>
-          <RouterProvider router={router} />
+          <SocketProvider>
+            <RouterProvider router={router} />
+          </SocketProvider>
         </AuthProvider>
       </App>
     </ConfigProvider>

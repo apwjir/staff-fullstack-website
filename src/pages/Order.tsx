@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Layout, Card, Row, Col, Button, Tag, Typography, Select, message, Spin, DatePicker } from "antd";
+import { Layout, Card, Row, Col, Button, Tag, Typography, Select, message, Spin, DatePicker, Badge } from "antd";
 import {
   FireOutlined,
   ClockCircleOutlined,
@@ -7,6 +7,7 @@ import {
 } from "@ant-design/icons";
 import dayjs, { Dayjs } from 'dayjs';
 import { adminApiService, mapOrderStatus, mapFrontendOrderStatus, type Order as BackendOrder, type OrderItem as BackendOrderItem, type MenuItem } from "../services/api";
+import { useSocket } from "../contexts/SocketContext";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -38,6 +39,13 @@ export default function Order() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs()); // Default to today
+  const { connected, joinStaff } = useSocket();
+
+  // Auto-join staff room when component mounts
+  useEffect(() => {
+    console.log('Order component mounted, joining staff room...');
+    joinStaff();
+  }, [joinStaff]);
 
   // Helper function to check if order is from selected date
   const isOrderFromSelectedDate = (orderDate: string, targetDate: Dayjs) => {
@@ -83,6 +91,96 @@ export default function Order() {
 
     loadOrders();
   }, []);
+
+  // Listen to real-time WebSocket events
+  useEffect(() => {
+    // Helper function to convert backend order to frontend format
+    const convertBackendOrderToFrontend = async (backendOrder: any): Promise<Order> => {
+      try {
+        // Fetch the full order details from API to get complete information
+        const fullOrderData = await adminApiService.getOrders();
+        const fullOrder = fullOrderData.find((o: BackendOrder) => o.id === backendOrder.id);
+
+        if (fullOrder) {
+          return {
+            id: fullOrder.id,
+            tableId: fullOrder.tableId,
+            sessionId: fullOrder.sessionId,
+            status: mapOrderStatus(fullOrder.status),
+            createdAt: fullOrder.createdAt,
+            updatedAt: fullOrder.updatedAt,
+            queuePos: fullOrder.queuePos,
+            billId: fullOrder.billId,
+            items: fullOrder.orderItems.map((item: BackendOrderItem) => ({
+              id: item.id,
+              orderId: item.orderId,
+              menuItemId: item.menuItemId,
+              quantity: item.quantity,
+              note: item.note,
+              menuItem: item.menuItem,
+            })),
+          };
+        }
+      } catch (error) {
+        console.error('Failed to fetch full order details:', error);
+      }
+
+      // Fallback to basic conversion if API call fails
+      return {
+        id: backendOrder.id,
+        tableId: backendOrder.tableId,
+        sessionId: backendOrder.sessionId || null,
+        status: mapOrderStatus(backendOrder.status || 'PENDING'),
+        createdAt: backendOrder.createdAt || new Date().toISOString(),
+        updatedAt: backendOrder.updatedAt || new Date().toISOString(),
+        queuePos: backendOrder.queuePos || null,
+        billId: backendOrder.billId || null,
+        items: backendOrder.items || [],
+      };
+    };
+
+    // Handle new orders
+    const handleOrderCreated = async (event: CustomEvent) => {
+      console.log('📋 Order page received new order:', event.detail);
+      const newOrder = await convertBackendOrderToFrontend(event.detail);
+
+      setOrders(prev => {
+        // Check if order already exists to avoid duplicates
+        const exists = prev.some(order => order.id === newOrder.id);
+        if (exists) return prev;
+        return [newOrder, ...prev];
+      });
+    };
+
+    // Handle order status updates
+    const handleOrderStatusUpdated = async (event: CustomEvent) => {
+      console.log('📋 Order page received order status update:', event.detail);
+      const updatedOrderData = event.detail;
+
+      setOrders(prev => prev.map(order => {
+        if (order.id === updatedOrderData.id) {
+          return {
+            ...order,
+            status: mapOrderStatus(updatedOrderData.status),
+            updatedAt: updatedOrderData.updatedAt || new Date().toISOString(),
+          };
+        }
+        return order;
+      }));
+    };
+
+    // Add event listeners
+    console.log('📋 Setting up WebSocket event listeners for Order page');
+    window.addEventListener('orderCreated', handleOrderCreated as EventListener);
+    window.addEventListener('orderStatusUpdated', handleOrderStatusUpdated as EventListener);
+
+    // Cleanup event listeners
+    return () => {
+      console.log('📋 Cleaning up WebSocket event listeners for Order page');
+      window.removeEventListener('orderCreated', handleOrderCreated as EventListener);
+      window.removeEventListener('orderStatusUpdated', handleOrderStatusUpdated as EventListener);
+    };
+  }, []); // Empty dependency array since we want this to run once
 
   const updateOrderStatus = async (
     id: number,
@@ -165,9 +263,15 @@ export default function Order() {
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
       <Content style={{ margin: "0 10rem", paddingTop: "2rem" }} className="mobile-responsive-content">
         {/* Title */}
-        <Title level={2} style={{ fontSize: 32, marginBottom: 4 }} className="mobile-responsive-title">
-          Orders Management
-        </Title>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 4 }}>
+          <Title level={2} style={{ fontSize: 32, margin: 0 }} className="mobile-responsive-title">
+            Orders Management
+          </Title>
+          <Badge
+            status={connected ? 'success' : 'error'}
+            text={connected ? 'Real-time updates active' : 'Connection lost'}
+          />
+        </div>
         <Text type="secondary">Track and manage all restaurant orders</Text>
 
         {/* Stats */}
