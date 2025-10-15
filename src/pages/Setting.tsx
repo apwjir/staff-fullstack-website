@@ -263,30 +263,6 @@ const Setting: React.FC = () => {
     }
   };
 
-  const handleToggleTableStatus = async (table: Table) => {
-    const newStatus = table.status === 'available' ? 'OCCUPIED' : 'AVAILABLE';
-    const backendStatus = newStatus;
-
-    try {
-      const updatedTable = await adminApiService.toggleTableStatusManually(table.id, backendStatus);
-
-      // Update local state immediately for responsive UI
-      setTables(prev => prev.map(t =>
-        t.id === table.id
-          ? { ...t, status: updatedTable.status === 'AVAILABLE' ? 'available' : 'occupied' }
-          : t
-      ));
-
-      const statusText = backendStatus === 'AVAILABLE' ? 'available' : 'occupied';
-      message.success(`Table ${table.tableNumber} is now ${statusText}`);
-
-      if (backendStatus === 'AVAILABLE') {
-        message.info('All active sessions for this table have been closed.');
-      }
-    } catch (error) {
-      message.error('Failed to update table status. Please try again.');
-    }
-  };
 
   const handleToggleAvailability = async (id: number) => {
     const item = menuItems.find(item => item.id === id);
@@ -689,29 +665,11 @@ const Setting: React.FC = () => {
                                   <Text strong>{`Table ${table.tableNumber}`}</Text>
                                   <br />
                                   <Text type="secondary">
-                                    {table.seats} seats •
-                                    <span style={{
-                                      color: table.status === 'available' ? '#52c41a' : '#fa8c16',
-                                      fontWeight: 'bold'
-                                    }}>
-                                      {table.status}
-                                    </span>
+                                    {table.seats} seats
                                   </Text>
                               </Col>
                               <Col>
                                 <Space size="middle">
-                                  <Button
-                                    size="small"
-                                    type={table.status === 'available' ? 'default' : 'primary'}
-                                    onClick={() => handleToggleTableStatus(table)}
-                                    style={{
-                                      backgroundColor: table.status === 'available' ? '#fa8c16' : '#52c41a',
-                                      borderColor: table.status === 'available' ? '#fa8c16' : '#52c41a',
-                                      color: 'white'
-                                    }}
-                                  >
-                                    {table.status === 'available' ? 'Set Occupied' : 'Set Available'}
-                                  </Button>
                                   <EditOutlined
                                     style={{ cursor: "pointer" }}
                                     onClick={() => handleEditTable(table)}

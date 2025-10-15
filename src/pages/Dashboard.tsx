@@ -145,8 +145,8 @@ useEffect(() => {
       // Convert frontend status to backend status
       const backendStatus = newStatus === "available" ? "AVAILABLE" : "OCCUPIED";
 
-      // Update status via API
-      await adminApiService.updateTableStatus(tableId, backendStatus);
+      // Update status via API (with session cleanup)
+      await adminApiService.toggleTableStatusManually(tableId, backendStatus);
 
       // Update local state
       setTables((prev) =>
