@@ -69,6 +69,46 @@ const Setting: React.FC = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [staffs, setStaffs] = useState<Staff[]>([]);
 
+  // Listen for real-time table status updates
+  useEffect(() => {
+    const handleTableStatusChanged = (event: CustomEvent) => {
+      const { tableId, status } = event.detail;
+      setTables(prev => prev.map(table =>
+        table.id === tableId
+          ? { ...table, status: status === 'AVAILABLE' ? 'available' : 'occupied' }
+          : table
+      ));
+    };
+
+    const handleSessionStarted = (event: CustomEvent) => {
+      const { tableId } = event.detail;
+      setTables(prev => prev.map(table =>
+        table.id === tableId
+          ? { ...table, status: 'occupied' }
+          : table
+      ));
+    };
+
+    const handleSessionEnded = (event: CustomEvent) => {
+      const { tableId } = event.detail;
+      setTables(prev => prev.map(table =>
+        table.id === tableId
+          ? { ...table, status: 'available' }
+          : table
+      ));
+    };
+
+    window.addEventListener('tableStatusChanged', handleTableStatusChanged as EventListener);
+    window.addEventListener('sessionStarted', handleSessionStarted as EventListener);
+    window.addEventListener('sessionEnded', handleSessionEnded as EventListener);
+
+    return () => {
+      window.removeEventListener('tableStatusChanged', handleTableStatusChanged as EventListener);
+      window.removeEventListener('sessionStarted', handleSessionStarted as EventListener);
+      window.removeEventListener('sessionEnded', handleSessionEnded as EventListener);
+    };
+  }, []);
+
   // Load data from API
   useEffect(() => {
     const loadData = async () => {
@@ -220,6 +260,31 @@ const Setting: React.FC = () => {
     } catch (error) {
       console.error('Failed to delete table:', error);
       message.error("Failed to delete table. Please try again.");
+    }
+  };
+
+  const handleToggleTableStatus = async (table: Table) => {
+    const newStatus = table.status === 'available' ? 'OCCUPIED' : 'AVAILABLE';
+    const backendStatus = newStatus;
+
+    try {
+      const updatedTable = await adminApiService.toggleTableStatusManually(table.id, backendStatus);
+
+      // Update local state immediately for responsive UI
+      setTables(prev => prev.map(t =>
+        t.id === table.id
+          ? { ...t, status: updatedTable.status === 'AVAILABLE' ? 'available' : 'occupied' }
+          : t
+      ));
+
+      const statusText = backendStatus === 'AVAILABLE' ? 'available' : 'occupied';
+      message.success(`Table ${table.tableNumber} is now ${statusText}`);
+
+      if (backendStatus === 'AVAILABLE') {
+        message.info('All active sessions for this table have been closed.');
+      }
+    } catch (error) {
+      message.error('Failed to update table status. Please try again.');
     }
   };
 
@@ -624,11 +689,29 @@ const Setting: React.FC = () => {
                                   <Text strong>{`Table ${table.tableNumber}`}</Text>
                                   <br />
                                   <Text type="secondary">
-                                    {table.seats} seats • {table.status}
+                                    {table.seats} seats •
+                                    <span style={{
+                                      color: table.status === 'available' ? '#52c41a' : '#fa8c16',
+                                      fontWeight: 'bold'
+                                    }}>
+                                      {table.status}
+                                    </span>
                                   </Text>
                               </Col>
                               <Col>
                                 <Space size="middle">
+                                  <Button
+                                    size="small"
+                                    type={table.status === 'available' ? 'default' : 'primary'}
+                                    onClick={() => handleToggleTableStatus(table)}
+                                    style={{
+                                      backgroundColor: table.status === 'available' ? '#fa8c16' : '#52c41a',
+                                      borderColor: table.status === 'available' ? '#fa8c16' : '#52c41a',
+                                      color: 'white'
+                                    }}
+                                  >
+                                    {table.status === 'available' ? 'Set Occupied' : 'Set Available'}
+                                  </Button>
                                   <EditOutlined
                                     style={{ cursor: "pointer" }}
                                     onClick={() => handleEditTable(table)}

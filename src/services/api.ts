@@ -143,6 +143,21 @@ class AdminApiService {
     });
   }
 
+  async toggleTableStatusManually(id: number, status: 'AVAILABLE' | 'OCCUPIED'): Promise<Table> {
+    return this.request<Table>(`/tables/${id}/status/toggle`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async getTableWithStatus(id: number): Promise<Table & {
+    hasActiveSessions: boolean;
+    activeSessionsCount: number;
+    latestSessionId: string | null;
+  }> {
+    return this.request(`/tables/${id}/status`);
+  }
+
   async updateTable(id: number, tableData: { tableNumber?: number; capacity?: number }): Promise<Table> {
     return this.request<Table>(`/tables/${id}`, {
       method: 'PATCH',

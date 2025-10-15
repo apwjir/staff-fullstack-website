@@ -211,6 +211,40 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         }));
       });
 
+      // Table status events
+      socket.on('table_status_changed', (data) => {
+        notification.info({
+          message: 'Table Status Updated',
+          description: `Table ${data.tableId} is now ${data.status.toLowerCase()}${data.reason ? ` (${data.reason})` : ''}`,
+          placement: 'topRight',
+          duration: 4,
+        });
+
+        window.dispatchEvent(new CustomEvent('tableStatusChanged', { detail: data }));
+      });
+
+      socket.on('session_started', (data) => {
+        notification.info({
+          message: 'Session Started',
+          description: `New session started at Table ${data.tableId}`,
+          placement: 'topRight',
+          duration: 3,
+        });
+
+        window.dispatchEvent(new CustomEvent('sessionStarted', { detail: data }));
+      });
+
+      socket.on('session_ended', (data) => {
+        notification.info({
+          message: 'Session Ended',
+          description: `Session ended at Table ${data.tableId}${data.reason ? ` (${data.reason})` : ''}`,
+          placement: 'topRight',
+          duration: 3,
+        });
+
+        window.dispatchEvent(new CustomEvent('sessionEnded', { detail: data }));
+      });
+
       socket.on('customer_left_table', (data) => {
         notification.info({
           message: 'Customer Activity',
