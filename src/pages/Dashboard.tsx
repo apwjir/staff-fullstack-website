@@ -34,6 +34,7 @@ export interface Table {
   status: TableStatus;
   reservedTime?: string;
   qrCodeToken?: string;
+  qrUrl?: string;
 }
 
 export default function Dashboard() {
@@ -171,7 +172,7 @@ useEffect(() => {
       const qrData = await adminApiService.generateTableQR(table.id);
 
       // Update table in state with new token
-      const updatedTable = { ...table, qrCodeToken: qrData.token };
+      const updatedTable = { ...table, qrCodeToken: qrData.qrCodeToken, qrUrl: qrData.url };
       setTables((prev) =>
         prev.map((t) =>
           t.id === table.id ? updatedTable : t
@@ -339,7 +340,7 @@ useEffect(() => {
                 Table {selectedTable.tableNumber} QR Code
               </Title>
               <QRCode
-                value={`${import.meta.env.VITE_CUSTOMER_FRONTEND_URL || 'http://localhost:5173'}/table/${selectedTable.tableNumber}?token=${selectedTable.qrCodeToken}`}
+                value={selectedTable.qrUrl || `${import.meta.env.VITE_CUSTOMER_FRONTEND_URL || 'http://localhost:5173'}/scan/${selectedTable.qrCodeToken}`}
                 size={250}
               />
               <Text

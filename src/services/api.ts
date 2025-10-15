@@ -171,8 +171,20 @@ class AdminApiService {
     });
   }
 
-  async generateTableQR(tableId: number): Promise<{ qrCode: string; token: string }> {
-    return this.request<{ qrCode: string; token: string }>(`/tables/${tableId}/qr`);
+  async generateTableQR(tableId: number): Promise<{
+    tableId: number;
+    tableNumber: number;
+    qrCodeToken: string;
+    url: string;
+    capacity: number;
+  }> {
+    return this.request<{
+      tableId: number;
+      tableNumber: number;
+      qrCodeToken: string;
+      url: string;
+      capacity: number;
+    }>(`/tables/${tableId}/qr`);
   }
 
   // Orders API
