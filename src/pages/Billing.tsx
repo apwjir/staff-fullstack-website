@@ -461,28 +461,29 @@ const Billing: React.FC = () => {
                         <Text type="secondary">No items found</Text>
                       )}
                     </div>
-                  </div>
 
-                  {!selectedBill.isPaid && (
-                    <div style={{ textAlign: "left" }}>
-                      <Button
-                        type="primary"
-                        onClick={() => {
-                          handleCloseBill(selectedBill.id);
-                        }}
-                        style={{
-                          backgroundColor: "#000000",
-                          color: "#ffffff",
-                          border: "none",
-                          borderRadius: 8,
-                          height: 40,
-                          fontWeight: 500,
-                        }}
-                      >
-                        Close Bill
-                      </Button>
-                    </div>
-                  )}
+                    {/* Close Bill Button - Moved right after receipt */}
+                    {!selectedBill.isPaid && (
+                      <div style={{ textAlign: "left", marginBottom: "16px" }}>
+                        <Button
+                          type="primary"
+                          onClick={() => {
+                            handleCloseBill(selectedBill.id);
+                          }}
+                          style={{
+                            backgroundColor: "#000000",
+                            color: "#ffffff",
+                            border: "none",
+                            borderRadius: 8,
+                            height: 40,
+                            fontWeight: 500,
+                          }}
+                        >
+                          Close Bill
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <Empty description="Select a bill to view details" />
