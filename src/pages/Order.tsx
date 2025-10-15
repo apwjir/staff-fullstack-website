@@ -1,12 +1,32 @@
 import { useState, useEffect } from "react";
-import { Layout, Card, Row, Col, Button, Tag, Typography, Select, message, Spin, DatePicker, Badge } from "antd";
+import {
+  Layout,
+  Card,
+  Row,
+  Col,
+  Button,
+  Tag,
+  Typography,
+  Select,
+  message,
+  Spin,
+  DatePicker,
+  Badge,
+} from "antd";
 import {
   FireOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons";
-import dayjs, { Dayjs } from 'dayjs';
-import { adminApiService, mapOrderStatus, mapFrontendOrderStatus, type Order as BackendOrder, type OrderItem as BackendOrderItem, type MenuItem } from "../services/api";
+import dayjs, { Dayjs } from "dayjs";
+import {
+  adminApiService,
+  mapOrderStatus,
+  mapFrontendOrderStatus,
+  type Order as BackendOrder,
+  type OrderItem as BackendOrderItem,
+  type MenuItem,
+} from "../services/api";
 import { useSocket } from "../contexts/SocketContext";
 
 const { Content } = Layout;
@@ -32,6 +52,9 @@ interface Order {
   queuePos: number | null;
   billId?: number | null;
   items: OrderItem[];
+  table: {
+    tableNumber: number;
+  };
 }
 
 export default function Order() {
@@ -46,7 +69,7 @@ export default function Order() {
   // Helper function to check if order is from selected date
   const isOrderFromSelectedDate = (orderDate: string, targetDate: Dayjs) => {
     const orderDay = dayjs(orderDate);
-    return orderDay.format('YYYY-MM-DD') === targetDate.format('YYYY-MM-DD');
+    return orderDay.format("YYYY-MM-DD") === targetDate.format("YYYY-MM-DD");
   };
 
   // Load orders from API
@@ -57,28 +80,33 @@ export default function Order() {
         const backendOrders = await adminApiService.getOrders();
 
         // Convert backend orders to frontend format
-        const frontendOrders: Order[] = backendOrders.map((order: BackendOrder) => ({
-          id: order.id,
-          tableId: order.tableId,
-          sessionId: order.sessionId,
-          status: mapOrderStatus(order.status),
-          createdAt: order.createdAt,
-          updatedAt: order.updatedAt,
-          queuePos: order.queuePos,
-          billId: order.billId,
-          items: order.orderItems.map((item: BackendOrderItem) => ({
-            id: item.id,
-            orderId: item.orderId,
-            menuItemId: item.menuItemId,
-            quantity: item.quantity,
-            note: item.note,
-            menuItem: item.menuItem,
-          })),
-        }));
+        const frontendOrders: Order[] = backendOrders.map(
+          (order: BackendOrder) => ({
+            id: order.id,
+            tableId: order.tableId,
+            sessionId: order.sessionId,
+            status: mapOrderStatus(order.status),
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt,
+            queuePos: order.queuePos,
+            billId: order.billId,
+            items: order.orderItems.map((item: BackendOrderItem) => ({
+              id: item.id,
+              orderId: item.orderId,
+              menuItemId: item.menuItemId,
+              quantity: item.quantity,
+              note: item.note === null ? undefined : item.note,
+              menuItem: item.menuItem,
+            })),
+            table: {
+              tableNumber: order.table.tableNumber,
+            },
+          })
+        );
 
         setOrders(frontendOrders);
       } catch (error) {
-        message.error('Failed to load orders. Please try again.');
+        message.error("Failed to load orders. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -90,11 +118,15 @@ export default function Order() {
   // Listen to real-time WebSocket events
   useEffect(() => {
     // Helper function to convert backend order to frontend format
-    const convertBackendOrderToFrontend = async (backendOrder: any): Promise<Order> => {
+    const convertBackendOrderToFrontend = async (
+      backendOrder: any
+    ): Promise<Order> => {
       try {
         // Fetch the full order details from API to get complete information
         const fullOrderData = await adminApiService.getOrders();
-        const fullOrder = fullOrderData.find((o: BackendOrder) => o.id === backendOrder.id);
+        const fullOrder = fullOrderData.find(
+          (o: BackendOrder) => o.id === backendOrder.id
+        );
 
         if (fullOrder) {
           return {
@@ -111,9 +143,12 @@ export default function Order() {
               orderId: item.orderId,
               menuItemId: item.menuItemId,
               quantity: item.quantity,
-              note: item.note,
+              note: item.note === null ? undefined : item.note,
               menuItem: item.menuItem,
             })),
+            table: {
+              tableNumber: fullOrder.table.tableNumber,
+            },
           };
         }
       } catch (error) {
@@ -125,12 +160,15 @@ export default function Order() {
         id: backendOrder.id,
         tableId: backendOrder.tableId,
         sessionId: backendOrder.sessionId || null,
-        status: mapOrderStatus(backendOrder.status || 'PENDING'),
+        status: mapOrderStatus(backendOrder.status || "PENDING"),
         createdAt: backendOrder.createdAt || new Date().toISOString(),
         updatedAt: backendOrder.updatedAt || new Date().toISOString(),
         queuePos: backendOrder.queuePos || null,
         billId: backendOrder.billId || null,
         items: backendOrder.items || [],
+        table: {
+          tableNumber: backendOrder.table.tableNumber,
+        },
       };
     };
 
@@ -138,9 +176,9 @@ export default function Order() {
     const handleOrderCreated = async (event: CustomEvent) => {
       const newOrder = await convertBackendOrderToFrontend(event.detail);
 
-      setOrders(prev => {
+      setOrders((prev) => {
         // Check if order already exists to avoid duplicates
-        const exists = prev.some(order => order.id === newOrder.id);
+        const exists = prev.some((order) => order.id === newOrder.id);
         if (exists) return prev;
         return [newOrder, ...prev];
       });
@@ -150,26 +188,40 @@ export default function Order() {
     const handleOrderStatusUpdated = async (event: CustomEvent) => {
       const updatedOrderData = event.detail;
 
-      setOrders(prev => prev.map(order => {
-        if (order.id === updatedOrderData.id) {
-          return {
-            ...order,
-            status: mapOrderStatus(updatedOrderData.status),
-            updatedAt: updatedOrderData.updatedAt || new Date().toISOString(),
-          };
-        }
-        return order;
-      }));
+      setOrders((prev) =>
+        prev.map((order) => {
+          if (order.id === updatedOrderData.id) {
+            return {
+              ...order,
+              status: mapOrderStatus(updatedOrderData.status),
+              updatedAt: updatedOrderData.updatedAt || new Date().toISOString(),
+            };
+          }
+          return order;
+        })
+      );
     };
 
     // Add event listeners
-    window.addEventListener('orderCreated', handleOrderCreated as EventListener);
-    window.addEventListener('orderStatusUpdated', handleOrderStatusUpdated as EventListener);
+    window.addEventListener(
+      "orderCreated",
+      handleOrderCreated as unknown as EventListener
+    );
+    window.addEventListener(
+      "orderStatusUpdated",
+      handleOrderStatusUpdated as unknown as EventListener
+    );
 
     // Cleanup event listeners
     return () => {
-      window.removeEventListener('orderCreated', handleOrderCreated as EventListener);
-      window.removeEventListener('orderStatusUpdated', handleOrderStatusUpdated as EventListener);
+      window.removeEventListener(
+        "orderCreated",
+        handleOrderCreated as unknown as EventListener
+      );
+      window.removeEventListener(
+        "orderStatusUpdated",
+        handleOrderStatusUpdated as unknown as EventListener
+      );
     };
   }, []); // Empty dependency array since we want this to run once
 
@@ -204,12 +256,20 @@ export default function Order() {
   };
 
   // Filter orders by selected date first, then by status
-  const dateFilteredOrders = orders.filter(order => isOrderFromSelectedDate(order.createdAt, selectedDate));
+  const dateFilteredOrders = orders.filter((order) =>
+    isOrderFromSelectedDate(order.createdAt, selectedDate)
+  );
 
   const totalOrders = dateFilteredOrders.length;
-  const waitingCount = dateFilteredOrders.filter((o) => o.status === "waiting").length;
-  const cookingCount = dateFilteredOrders.filter((o) => o.status === "cooking").length;
-  const doneCount = dateFilteredOrders.filter((o) => o.status === "done").length;
+  const waitingCount = dateFilteredOrders.filter(
+    (o) => o.status === "waiting"
+  ).length;
+  const cookingCount = dateFilteredOrders.filter(
+    (o) => o.status === "cooking"
+  ).length;
+  const doneCount = dateFilteredOrders.filter(
+    (o) => o.status === "done"
+  ).length;
 
   const getTag = (status: string) => {
     switch (status) {
@@ -237,12 +297,21 @@ export default function Order() {
   };
 
   const filteredOrders =
-    filter === "all" ? dateFilteredOrders : dateFilteredOrders.filter((o) => o.status === filter);
+    filter === "all"
+      ? dateFilteredOrders
+      : dateFilteredOrders.filter((o) => o.status === filter);
 
   if (loading) {
     return (
       <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
-        <Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+        <Content
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "100vh",
+          }}
+        >
           <Spin size="large" />
         </Content>
       </Layout>
@@ -251,17 +320,35 @@ export default function Order() {
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
-      <Content style={{ margin: "0 10rem", paddingTop: "2rem" }} className="mobile-responsive-content">
+      <Content
+        style={{ margin: "0 10rem", paddingTop: "2rem" }}
+        className="mobile-responsive-content"
+      >
         {/* Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 4 }}>
-          <Title level={2} style={{ fontSize: 32, margin: 0 }} className="mobile-responsive-title">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            marginBottom: 4,
+          }}
+        >
+          <Title
+            level={2}
+            style={{ fontSize: 32, margin: 0 }}
+            className="mobile-responsive-title"
+          >
             Orders Management
           </Title>
         </div>
         <Text type="secondary">Track and manage all restaurant orders</Text>
 
         {/* Stats */}
-        <Row gutter={[24, 24]} style={{ marginTop: "2rem" }} className="mobile-responsive-stats">
+        <Row
+          gutter={[24, 24]}
+          style={{ marginTop: "2rem" }}
+          className="mobile-responsive-stats"
+        >
           {[
             { label: "Total Orders", value: totalOrders, color: "#111827" },
             { label: "Waiting", value: waitingCount, color: "orange" },
@@ -321,15 +408,19 @@ export default function Order() {
             <Col xs={24} key={order.id}>
               <Card style={{ borderRadius: 12 }}>
                 {/* Header */}
-                <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+                <Row
+                  justify="space-between"
+                  align="middle"
+                  style={{ marginBottom: 16 }}
+                >
                   <Col>
                     <Title level={5} style={{ margin: 0 }}>
-                      Order #{order.id} - Table {order.tableId}
+                      Order #{order.id} - Table {order.table.tableNumber}
                     </Title>
                   </Col>
                   <Col style={{ display: "flex", justifyContent: "flex-end" }}>
                     {getTag(order.status)}
-                    {dayjs(order.createdAt).format('HH:mm A')}
+                    {dayjs(order.createdAt).format("HH:mm A")}
                   </Col>
                 </Row>
 
@@ -344,7 +435,10 @@ export default function Order() {
                     </Row>
                     {item.note && (
                       <Row style={{ marginTop: 4, paddingLeft: 16 }}>
-                        <Text type="secondary" style={{ fontSize: 12, fontStyle: 'italic' }}>
+                        <Text
+                          type="secondary"
+                          style={{ fontSize: 12, fontStyle: "italic" }}
+                        >
                           Note: {item.note}
                         </Text>
                       </Row>
@@ -367,12 +461,15 @@ export default function Order() {
                       key={statusKey}
                       type={order.status === statusKey ? "primary" : "default"}
                       onClick={() =>
-                        updateOrderStatus(order.id, statusKey as "waiting" | "cooking" | "done")
+                        updateOrderStatus(
+                          order.id,
+                          statusKey as "waiting" | "cooking" | "done"
+                        )
                       }
                       style={{
                         backgroundColor: "#000000",
                         color: "#ffffff",
-                        border: "none", 
+                        border: "none",
                         borderRadius: 8,
                         // height: 40,
                         fontWeight: 500,

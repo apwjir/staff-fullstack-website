@@ -15,34 +15,16 @@ import {
   Spin,
   DatePicker,
 } from "antd";
-import dayjs, { Dayjs } from 'dayjs';
-import { adminApiService, type Bill as BackendBill } from "../services/api";
+import dayjs, { Dayjs } from "dayjs";
+import {
+  adminApiService,
+  type Bill as BackendBill,
+  type Bill,
+} from "../services/api";
 import { useSocket } from "../contexts/SocketContext";
 import { Badge } from "antd";
 
 const { Title, Text } = Typography;
-
-interface Bill {
-  id: number;
-  tableId: number;
-  isPaid: boolean;
-  createdAt: string;
-  paidAt?: string | null;
-  totalAmount: number;
-  orders?: Array<{
-    id: number;
-    orderItems: Array<{
-      id: number;
-      quantity: number;
-      note?: string;
-      menuItem: {
-        id: number;
-        name: string;
-        price: number;
-      };
-    }>;
-  }>;
-}
 
 const Billing: React.FC = () => {
   const [bills, setBills] = useState<Bill[]>([]);
@@ -55,7 +37,7 @@ const Billing: React.FC = () => {
   // Helper function to check if bill is from selected date
   const isBillFromSelectedDate = (billDate: string, targetDate: Dayjs) => {
     const billDay = dayjs(billDate);
-    return billDay.format('YYYY-MM-DD') === targetDate.format('YYYY-MM-DD');
+    return billDay.format("YYYY-MM-DD") === targetDate.format("YYYY-MM-DD");
   };
 
   // Load bills from API
@@ -74,11 +56,14 @@ const Billing: React.FC = () => {
           paidAt: bill.paidAt,
           totalAmount: bill.totalAmount,
           orders: bill.orders,
+          table: {
+            tableNumber: bill.table.tableNumber,
+          },
         }));
 
         setBills(frontendBills);
       } catch (error) {
-        message.error('Failed to load bills. Please try again.');
+        message.error("Failed to load bills. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -86,7 +71,6 @@ const Billing: React.FC = () => {
 
     loadBills();
   }, []);
-
 
   // Listen for real-time bill events
   useEffect(() => {
@@ -96,7 +80,9 @@ const Billing: React.FC = () => {
       // Fetch the complete bill data from API to get full details
       try {
         const allBills = await adminApiService.getBills();
-        const newBill = allBills.find((bill: BackendBill) => bill.id === newBillData.id);
+        const newBill = allBills.find(
+          (bill: BackendBill) => bill.id === newBillData.id
+        );
 
         if (newBill) {
           const frontendBill: Bill = {
@@ -107,11 +93,14 @@ const Billing: React.FC = () => {
             paidAt: newBill.paidAt,
             totalAmount: newBill.totalAmount,
             orders: newBill.orders,
+            table: {
+              tableNumber: newBill.table.tableNumber,
+            },
           };
 
           // Add new bill to the beginning of the list
-          setBills(prev => {
-            const exists = prev.some(bill => bill.id === frontendBill.id);
+          setBills((prev) => {
+            const exists = prev.some((bill) => bill.id === frontendBill.id);
             if (exists) return prev;
             return [frontendBill, ...prev];
           });
@@ -125,26 +114,38 @@ const Billing: React.FC = () => {
       const updatedBillData = event.detail;
 
       // Update bill in state
-      setBills(prev => prev.map(bill => {
-        if (bill.id === updatedBillData.id) {
-          return {
-            ...bill,
-            totalAmount: updatedBillData.totalAmount || bill.totalAmount,
-            isPaid: updatedBillData.isPaid !== undefined ? updatedBillData.isPaid : bill.isPaid,
-            paidAt: updatedBillData.paidAt || bill.paidAt,
-          };
-        }
-        return bill;
-      }));
+      setBills((prev) =>
+        prev.map((bill) => {
+          if (bill.id === updatedBillData.id) {
+            return {
+              ...bill,
+              totalAmount: updatedBillData.totalAmount || bill.totalAmount,
+              isPaid:
+                updatedBillData.isPaid !== undefined
+                  ? updatedBillData.isPaid
+                  : bill.isPaid,
+              paidAt: updatedBillData.paidAt || bill.paidAt,
+            };
+          }
+          return bill;
+        })
+      );
 
       // Update selected bill if it's the one being updated
       if (selectedBill?.id === updatedBillData.id) {
-        setSelectedBill(prev => prev ? {
-          ...prev,
-          totalAmount: updatedBillData.totalAmount || prev.totalAmount,
-          isPaid: updatedBillData.isPaid !== undefined ? updatedBillData.isPaid : prev.isPaid,
-          paidAt: updatedBillData.paidAt || prev.paidAt,
-        } : null);
+        setSelectedBill((prev) =>
+          prev
+            ? {
+                ...prev,
+                totalAmount: updatedBillData.totalAmount || prev.totalAmount,
+                isPaid:
+                  updatedBillData.isPaid !== undefined
+                    ? updatedBillData.isPaid
+                    : prev.isPaid,
+                paidAt: updatedBillData.paidAt || prev.paidAt,
+              }
+            : null
+        );
       }
     };
 
@@ -152,42 +153,59 @@ const Billing: React.FC = () => {
       const paidBillData = event.detail;
 
       // Update bill as paid
-      setBills(prev => prev.map(bill => {
-        if (bill.id === paidBillData.id) {
-          return {
-            ...bill,
-            isPaid: true,
-            paidAt: paidBillData.paidAt || new Date().toISOString(),
-          };
-        }
-        return bill;
-      }));
+      setBills((prev) =>
+        prev.map((bill) => {
+          if (bill.id === paidBillData.id) {
+            return {
+              ...bill,
+              isPaid: true,
+              paidAt: paidBillData.paidAt || new Date().toISOString(),
+            };
+          }
+          return bill;
+        })
+      );
 
       // Update selected bill if it's the one being paid
       if (selectedBill?.id === paidBillData.id) {
-        setSelectedBill(prev => prev ? {
-          ...prev,
-          isPaid: true,
-          paidAt: paidBillData.paidAt || new Date().toISOString(),
-        } : null);
+        setSelectedBill((prev) =>
+          prev
+            ? {
+                ...prev,
+                isPaid: true,
+                paidAt: paidBillData.paidAt || new Date().toISOString(),
+              }
+            : null
+        );
       }
     };
 
     // Add event listeners
-    window.addEventListener('billCreated', handleBillCreated as EventListener);
-    window.addEventListener('billUpdated', handleBillUpdated as EventListener);
-    window.addEventListener('billPaid', handleBillPaid as EventListener);
+    window.addEventListener(
+      "billCreated",
+      handleBillCreated as unknown as EventListener
+    );
+    window.addEventListener("billUpdated", handleBillUpdated as EventListener);
+    window.addEventListener("billPaid", handleBillPaid as EventListener);
 
     // Cleanup
     return () => {
-      window.removeEventListener('billCreated', handleBillCreated as EventListener);
-      window.removeEventListener('billUpdated', handleBillUpdated as EventListener);
-      window.removeEventListener('billPaid', handleBillPaid as EventListener);
+      window.removeEventListener(
+        "billCreated",
+        handleBillCreated as unknown as EventListener
+      );
+      window.removeEventListener(
+        "billUpdated",
+        handleBillUpdated as EventListener
+      );
+      window.removeEventListener("billPaid", handleBillPaid as EventListener);
     };
   }, [selectedBill]);
 
   // Filter bills by selected date first
-  const dateFilteredBills = bills.filter(bill => isBillFromSelectedDate(bill.createdAt, selectedDate));
+  const dateFilteredBills = bills.filter((bill) =>
+    isBillFromSelectedDate(bill.createdAt, selectedDate)
+  );
 
   const filteredBills = dateFilteredBills.filter(
     (bill) =>
@@ -223,12 +241,17 @@ const Billing: React.FC = () => {
     }
   };
 
-
-
   if (loading) {
     return (
       <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
-        <Layout.Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+        <Layout.Content
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "100vh",
+          }}
+        >
           <Spin size="large" />
         </Layout.Content>
       </Layout>
@@ -237,23 +260,42 @@ const Billing: React.FC = () => {
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
-      <Layout.Content style={{ margin: "0 10rem", paddingTop: "2rem" }} className="mobile-responsive-content">
+      <Layout.Content
+        style={{ margin: "0 10rem", paddingTop: "2rem" }}
+        className="mobile-responsive-content"
+      >
         {/* Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 4 }}>
-          <Title level={2} style={{ fontSize: 32, margin: 0 }} className="mobile-responsive-title">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            marginBottom: 4,
+          }}
+        >
+          <Title
+            level={2}
+            style={{ fontSize: 32, margin: 0 }}
+            className="mobile-responsive-title"
+          >
             Billing & Payments
           </Title>
         </div>
         <Text type="secondary">Manage bills and payment processing</Text>
 
         {/* Summary Cards */}
-        <Row gutter={[24, 24]} style={{ marginTop: "2rem" }} align="stretch" className="mobile-responsive-stats">
+        <Row
+          gutter={[24, 24]}
+          style={{ marginTop: "2rem" }}
+          align="stretch"
+          className="mobile-responsive-stats"
+        >
           {[
             { label: "Total Bills", value: totalBills, color: "#111827" },
             { label: "Unpaid", value: unpaidBills, color: "red" },
             { label: "Paid", value: paidBills, color: "green" },
             {
-              label: `Revenue (${selectedDate.format('MMM DD')})`,
+              label: `Revenue (${selectedDate.format("MMM DD")})`,
               value: `฿${revenueToday.toFixed(2)}`,
               color: "#1890ff",
             },
@@ -275,12 +317,22 @@ const Billing: React.FC = () => {
             {/* Left: Bill List */}
             <Col xs={24} md={8}>
               <div style={{ marginBottom: 16 }}>
-                <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
+                <Text
+                  strong
+                  style={{ fontSize: 16, display: "block", marginBottom: 8 }}
+                >
                   Bills
                 </Text>
 
                 {/* Date and Status Filters */}
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    flexWrap: "wrap",
+                    marginBottom: 8,
+                  }}
+                >
                   <DatePicker
                     value={selectedDate}
                     onChange={(date) => setSelectedDate(date || dayjs())}
@@ -327,7 +379,7 @@ const Billing: React.FC = () => {
                     >
                       <Space direction="vertical" size={4}>
                         <Space>
-                          <Text strong>Table {bill.tableId}</Text>
+                          <Text strong>Table {bill.table.tableNumber}</Text>
                           <Tag
                             bordered={false}
                             color={bill.isPaid ? "green" : "red"}
@@ -337,7 +389,8 @@ const Billing: React.FC = () => {
                         </Space>
                         {bill.isPaid && bill.paidAt && (
                           <Text type="success" style={{ fontSize: 13 }}>
-                            Paid at {dayjs(bill.paidAt).format('MMM DD, YYYY HH:mm')}
+                            Paid at{" "}
+                            {dayjs(bill.paidAt).format("MMM DD, YYYY HH:mm")}
                           </Text>
                         )}
                       </Space>
@@ -365,20 +418,32 @@ const Billing: React.FC = () => {
                 >
                   <div>
                     <div
-                      style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: "20px",
+                      }}
                     >
                       <div>
                         <Title level={4}>
-                          Table {selectedBill.tableId} -{" "}
+                          Table {selectedBill.table.tableNumber} -{" "}
                           {selectedBill.isPaid ? "Paid" : "Unpaid"}
                         </Title>
                         <div>
-                          <Text>Created: {dayjs(selectedBill.createdAt).format('MMM DD, YYYY HH:mm')}</Text>
+                          <Text>
+                            Created:{" "}
+                            {dayjs(selectedBill.createdAt).format(
+                              "MMM DD, YYYY HH:mm"
+                            )}
+                          </Text>
                         </div>
                         {selectedBill.paidAt && (
                           <div>
                             <Text type="success">
-                              Paid at: {dayjs(selectedBill.paidAt).format('MMM DD, YYYY HH:mm')}
+                              Paid at:{" "}
+                              {dayjs(selectedBill.paidAt).format(
+                                "MMM DD, YYYY HH:mm"
+                              )}
                             </Text>
                           </div>
                         )}
@@ -399,22 +464,44 @@ const Billing: React.FC = () => {
                         marginBottom: "16px",
                       }}
                     >
-                      <Title level={5} style={{ marginBottom: "16px", textAlign: "center" }}>
+                      <Title
+                        level={5}
+                        style={{ marginBottom: "16px", textAlign: "center" }}
+                      >
                         RECEIPT
                       </Title>
-                      <div style={{ borderBottom: "1px dashed #d9d9d9", paddingBottom: "8px", marginBottom: "12px" }}>
+                      <div
+                        style={{
+                          borderBottom: "1px dashed #d9d9d9",
+                          paddingBottom: "8px",
+                          marginBottom: "12px",
+                        }}
+                      >
                         <>
-                          <Text strong>Table: {selectedBill.tableId}</Text>
+                          <Text strong>
+                            Table: {selectedBill.table.tableNumber}
+                          </Text>
                           <br />
-                          <Text>Date: {dayjs(selectedBill.createdAt).format('MMM DD, YYYY HH:mm')}</Text>
+                          <Text>
+                            Date:{" "}
+                            {dayjs(selectedBill.createdAt).format(
+                              "MMM DD, YYYY HH:mm"
+                            )}
+                          </Text>
                         </>
                       </div>
 
                       {selectedBill.orders && selectedBill.orders.length > 0 ? (
                         <div>
                           {selectedBill.orders.map((order) => (
-                            <div key={order.id} style={{ marginBottom: "16px" }}>
-                              <Text strong style={{ fontSize: "14px", color: "#666" }}>
+                            <div
+                              key={order.id}
+                              style={{ marginBottom: "16px" }}
+                            >
+                              <Text
+                                strong
+                                style={{ fontSize: "14px", color: "#666" }}
+                              >
                                 Order #{order.id}
                               </Text>
                               {order.orderItems.map((item) => (
@@ -431,26 +518,59 @@ const Billing: React.FC = () => {
                                     <Text>{item.menuItem.name}</Text>
                                     {item.note && (
                                       <div>
-                                        <Text type="secondary" style={{ fontSize: "12px" }}>
+                                        <Text
+                                          type="secondary"
+                                          style={{ fontSize: "12px" }}
+                                        >
                                           Note: {item.note}
                                         </Text>
                                       </div>
                                     )}
                                   </div>
-                                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      gap: "8px",
+                                      alignItems: "center",
+                                    }}
+                                  >
                                     <Text>{item.quantity}x</Text>
-                                    <Text>${item.menuItem.price.toFixed(2)}</Text>
-                                    <Text strong style={{ minWidth: "60px", textAlign: "right" }}>
-                                      ${(item.quantity * item.menuItem.price).toFixed(2)}
+                                    <Text>
+                                      ${item.menuItem.price.toFixed(2)}
+                                    </Text>
+                                    <Text
+                                      strong
+                                      style={{
+                                        minWidth: "60px",
+                                        textAlign: "right",
+                                      }}
+                                    >
+                                      $
+                                      {(
+                                        item.quantity * item.menuItem.price
+                                      ).toFixed(2)}
                                     </Text>
                                   </div>
                                 </div>
                               ))}
                             </div>
                           ))}
-                          <div style={{ borderTop: "1px dashed #d9d9d9", paddingTop: "12px", marginTop: "16px" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                              <Text strong style={{ fontSize: "16px" }}>TOTAL:</Text>
+                          <div
+                            style={{
+                              borderTop: "1px dashed #d9d9d9",
+                              paddingTop: "12px",
+                              marginTop: "16px",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <Text strong style={{ fontSize: "16px" }}>
+                                TOTAL:
+                              </Text>
                               <Text strong style={{ fontSize: "16px" }}>
                                 ${selectedBill.totalAmount.toFixed(2)}
                               </Text>

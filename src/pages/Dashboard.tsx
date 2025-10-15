@@ -18,7 +18,11 @@ import {
   QrcodeOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
-import { adminApiService, mapTableStatus, type Table as BackendTable } from "../services/api";
+import {
+  adminApiService,
+  mapTableStatus,
+  type Table as BackendTable,
+} from "../services/api";
 // import { useSocket } from "../contexts/SocketContext";
 // import { Badge } from "antd";
 
@@ -54,18 +58,20 @@ export default function Dashboard() {
         const backendTables = await adminApiService.getTables();
 
         // Convert backend table format to frontend format
-        const frontendTables: Table[] = backendTables.map((table: BackendTable) => ({
-          id: table.id,
-          tableNumber: table.tableNumber,
-          seats: table.capacity,
-          status: mapTableStatus(table.status),
-          qrCodeToken: table.qrCodeToken,
-        }));
+        const frontendTables: Table[] = backendTables.map(
+          (table: BackendTable) => ({
+            id: table.id,
+            tableNumber: table.tableNumber,
+            seats: table.capacity,
+            status: mapTableStatus(table.status),
+            qrCodeToken: table.qrCodeToken,
+          })
+        );
 
         setTables(frontendTables);
       } catch (error) {
-        console.error('Failed to load tables:', error);
-        message.error('Failed to load tables. Please try again.');
+        console.error("Failed to load tables:", error);
+        message.error("Failed to load tables. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -74,24 +80,32 @@ export default function Dashboard() {
     loadTables();
   }, []);
 
-useEffect(() => {
+  useEffect(() => {
     const handleTableStatusUpdate = (event: CustomEvent) => {
       const { tableId, status } = event.detail;
 
       // อัปเดต state ของโต๊ะที่มีการเปลี่ยนแปลง
       setTables((prevTables) =>
         prevTables.map((table) =>
-          table.id === tableId ? { ...table, status: mapTableStatus(status) } : table
+          table.id === tableId
+            ? { ...table, status: mapTableStatus(status) }
+            : table
         )
       );
     };
 
     // เริ่มดักฟังสัญญาณ 'tableStatusUpdated'
-    window.addEventListener('tableStatusUpdated', handleTableStatusUpdate as EventListener);
+    window.addEventListener(
+      "tableStatusUpdated",
+      handleTableStatusUpdate as EventListener
+    );
 
     // หยุดการดักฟังเมื่อคอมโพเนนต์ถูกปิด
     return () => {
-      window.removeEventListener('tableStatusUpdated', handleTableStatusUpdate as EventListener);
+      window.removeEventListener(
+        "tableStatusUpdated",
+        handleTableStatusUpdate as EventListener
+      );
     };
   }, []); // dependency array เป็น [] เพื่อให้โค้ดส่วนนี้ทำงานแค่ครั้งเดียว
 
@@ -141,22 +155,28 @@ useEffect(() => {
   };
 
   /** ✅ เปลี่ยนสถานะของโต๊ะ */
-  const handleChangeStatus = async (tableId: number, newStatus: TableStatus) => {
+  const handleChangeStatus = async (
+    tableId: number,
+    newStatus: TableStatus
+  ) => {
     try {
       // Convert frontend status to backend status
-      const backendStatus = newStatus === "available" ? "AVAILABLE" : "OCCUPIED";
+      const backendStatus =
+        newStatus === "available" ? "AVAILABLE" : "OCCUPIED";
 
       // Update status via API (with session cleanup)
       await adminApiService.toggleTableStatusManually(tableId, backendStatus);
 
       // Update local state
       setTables((prev) =>
-        prev.map((t) =>
-          t.id === tableId ? { ...t, status: newStatus } : t
-        )
+        prev.map((t) => (t.id === tableId ? { ...t, status: newStatus } : t))
       );
 
-      message.success(`Table ${tables.find(t => t.id === tableId)?.tableNumber} status updated to ${newStatus}`);
+      message.success(
+        `Table ${
+          tables.find((t) => t.id === tableId)?.tableNumber
+        } status updated to ${newStatus}`
+      );
     } catch (error) {
       console.error("Error changing table status:", error);
       message.error("Failed to update table status. Please try again.");
@@ -172,11 +192,13 @@ useEffect(() => {
       const qrData = await adminApiService.generateTableQR(table.id);
 
       // Update table in state with new token
-      const updatedTable = { ...table, qrCodeToken: qrData.qrCodeToken, qrUrl: qrData.url };
+      const updatedTable = {
+        ...table,
+        qrCodeToken: qrData.qrCodeToken,
+        qrUrl: qrData.url,
+      };
       setTables((prev) =>
-        prev.map((t) =>
-          t.id === table.id ? updatedTable : t
-        )
+        prev.map((t) => (t.id === table.id ? updatedTable : t))
       );
 
       // Open modal with updated table
@@ -195,7 +217,14 @@ useEffect(() => {
   if (loading) {
     return (
       <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
-        <Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+        <Content
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "100vh",
+          }}
+        >
           <Spin size="large" />
         </Content>
       </Layout>
@@ -204,16 +233,34 @@ useEffect(() => {
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f9fafb" }}>
-      <Content style={{ margin: "0 10rem", paddingTop: "2rem" }} className="mobile-responsive-content">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 4 }}>
-          <Title level={2} style={{ fontSize: 32, margin: 0 }} className="mobile-responsive-title">
+      <Content
+        style={{ margin: "0 10rem", paddingTop: "2rem" }}
+        className="mobile-responsive-content"
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            marginBottom: 4,
+          }}
+        >
+          <Title
+            level={2}
+            style={{ fontSize: 32, margin: 0 }}
+            className="mobile-responsive-title"
+          >
             Table Management
           </Title>
         </div>
         <Text type="secondary">Monitor and manage restaurant tables</Text>
 
         {/* Summary */}
-        <Row gutter={[24, 24]} style={{ marginTop: "2rem" }} className="mobile-responsive-stats">
+        <Row
+          gutter={[24, 24]}
+          style={{ marginTop: "2rem" }}
+          className="mobile-responsive-stats"
+        >
           {[
             { label: "Total Tables", value: total, color: "#111827" },
             { label: "Available", value: availableCount, color: "green" },
@@ -231,7 +278,10 @@ useEffect(() => {
         </Row>
 
         {/* Filter Buttons */}
-        <div style={{ marginTop: "2rem", display: "flex", gap: 12 }} className="mobile-responsive-filter">
+        <div
+          style={{ marginTop: "2rem", display: "flex", gap: 12 }}
+          className="mobile-responsive-filter"
+        >
           {[
             { label: "All Tables", value: "all" },
             { label: "Available", value: "available" },
@@ -340,7 +390,13 @@ useEffect(() => {
                 Table {selectedTable.tableNumber} QR Code
               </Title>
               <QRCode
-                value={selectedTable.qrUrl || `${import.meta.env.VITE_CUSTOMER_FRONTEND_URL || 'http://localhost:5173'}/scan/${selectedTable.qrCodeToken}`}
+                value={
+                  selectedTable.qrUrl ||
+                  `${
+                    import.meta.env.VITE_CUSTOMER_FRONTEND_URL ||
+                    "http://localhost:5173"
+                  }/scan/${selectedTable.qrCodeToken}`
+                }
                 size={250}
               />
               <Text
