@@ -73,7 +73,26 @@ export default function Dashboard() {
     loadTables();
   }, []);
 
+useEffect(() => {
+    const handleTableStatusUpdate = (event: CustomEvent) => {
+      const { tableId, status } = event.detail;
 
+      // อัปเดต state ของโต๊ะที่มีการเปลี่ยนแปลง
+      setTables((prevTables) =>
+        prevTables.map((table) =>
+          table.id === tableId ? { ...table, status: mapTableStatus(status) } : table
+        )
+      );
+    };
+
+    // เริ่มดักฟังสัญญาณ 'tableStatusUpdated'
+    window.addEventListener('tableStatusUpdated', handleTableStatusUpdate as EventListener);
+
+    // หยุดการดักฟังเมื่อคอมโพเนนต์ถูกปิด
+    return () => {
+      window.removeEventListener('tableStatusUpdated', handleTableStatusUpdate as EventListener);
+    };
+  }, []); // dependency array เป็น [] เพื่อให้โค้ดส่วนนี้ทำงานแค่ครั้งเดียว
 
   const filteredTables =
     filter === "all" ? tables : tables.filter((t) => t.status === filter);

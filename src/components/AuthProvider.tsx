@@ -56,7 +56,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsAuthenticated(true);
       return true;
     } catch (error) {
-      console.error('Login failed:', error);
       setUser(null);
       setIsAuthenticated(false);
       return false;
@@ -66,13 +65,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithToken = async (token: string) => {
     // No longer needed since OAuth now uses cookies
     // This method is kept for backwards compatibility but refreshes user data
-    console.log('OAuth login via cookie already handled by backend');
     try {
       const currentUser = await adminApiService.getCurrentUser();
       setUser(currentUser);
       setIsAuthenticated(true);
     } catch (error) {
-      console.error('Failed to get user after OAuth:', error);
       setUser(null);
       setIsAuthenticated(false);
     }

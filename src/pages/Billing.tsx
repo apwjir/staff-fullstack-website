@@ -78,7 +78,6 @@ const Billing: React.FC = () => {
 
         setBills(frontendBills);
       } catch (error) {
-        console.error('Failed to load bills:', error);
         message.error('Failed to load bills. Please try again.');
       } finally {
         setLoading(false);
@@ -92,7 +91,6 @@ const Billing: React.FC = () => {
   // Listen for real-time bill events
   useEffect(() => {
     const handleBillCreated = async (event: CustomEvent) => {
-      console.log('💰 Bill created event:', event.detail);
       const newBillData = event.detail;
 
       // Fetch the complete bill data from API to get full details
@@ -119,12 +117,11 @@ const Billing: React.FC = () => {
           });
         }
       } catch (error) {
-        console.error('Failed to fetch new bill details:', error);
+        // Failed to fetch new bill details
       }
     };
 
     const handleBillUpdated = (event: CustomEvent) => {
-      console.log('💰 Bill updated event:', event.detail);
       const updatedBillData = event.detail;
 
       // Update bill in state
@@ -152,7 +149,6 @@ const Billing: React.FC = () => {
     };
 
     const handleBillPaid = (event: CustomEvent) => {
-      console.log('💰 Bill paid event:', event.detail);
       const paidBillData = event.detail;
 
       // Update bill as paid
@@ -224,7 +220,6 @@ const Billing: React.FC = () => {
       message.success("Bill closed successfully");
     } catch (error) {
       message.error("Failed to close bill. Please try again.");
-      console.error("Error closing bill:", error);
     }
   };
 
@@ -259,7 +254,7 @@ const Billing: React.FC = () => {
             { label: "Paid", value: paidBills, color: "green" },
             {
               label: `Revenue (${selectedDate.format('MMM DD')})`,
-              value: `$${revenueToday.toFixed(2)}`,
+              value: `฿${revenueToday.toFixed(2)}`,
               color: "#1890ff",
             },
           ].map((stat) => (
@@ -347,7 +342,7 @@ const Billing: React.FC = () => {
                         )}
                       </Space>
                       <Text strong style={{ fontSize: 15 }}>
-                        ${bill.totalAmount.toFixed(2)}
+                        ฿{bill.totalAmount.toFixed(2)}
                       </Text>
                     </Space>
                   </Card>

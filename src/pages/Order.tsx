@@ -78,7 +78,6 @@ export default function Order() {
 
         setOrders(frontendOrders);
       } catch (error) {
-        console.error('Failed to load orders:', error);
         message.error('Failed to load orders. Please try again.');
       } finally {
         setLoading(false);
@@ -118,7 +117,7 @@ export default function Order() {
           };
         }
       } catch (error) {
-        console.error('Failed to fetch full order details:', error);
+        // Fallback to basic conversion if API call fails
       }
 
       // Fallback to basic conversion if API call fails
@@ -137,7 +136,6 @@ export default function Order() {
 
     // Handle new orders
     const handleOrderCreated = async (event: CustomEvent) => {
-      console.log('📋 Order page received new order:', event.detail);
       const newOrder = await convertBackendOrderToFrontend(event.detail);
 
       setOrders(prev => {
@@ -150,7 +148,6 @@ export default function Order() {
 
     // Handle order status updates
     const handleOrderStatusUpdated = async (event: CustomEvent) => {
-      console.log('📋 Order page received order status update:', event.detail);
       const updatedOrderData = event.detail;
 
       setOrders(prev => prev.map(order => {
@@ -166,13 +163,11 @@ export default function Order() {
     };
 
     // Add event listeners
-    console.log('📋 Setting up WebSocket event listeners for Order page');
     window.addEventListener('orderCreated', handleOrderCreated as EventListener);
     window.addEventListener('orderStatusUpdated', handleOrderStatusUpdated as EventListener);
 
     // Cleanup event listeners
     return () => {
-      console.log('📋 Cleaning up WebSocket event listeners for Order page');
       window.removeEventListener('orderCreated', handleOrderCreated as EventListener);
       window.removeEventListener('orderStatusUpdated', handleOrderStatusUpdated as EventListener);
     };
@@ -204,7 +199,6 @@ export default function Order() {
 
       message.success(`Order #${id} status updated to ${status}`);
     } catch (error) {
-      console.error("Error updating order status:", error);
       message.error("Failed to update order status. Please try again.");
     }
   };

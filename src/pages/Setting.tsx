@@ -74,7 +74,6 @@ const Setting: React.FC = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        console.log('Loading Settings data...');
 
         // Load data individually to catch specific errors
         let backendTables: BackendTable[] = [];
@@ -83,7 +82,6 @@ const Setting: React.FC = () => {
 
         try {
           backendTables = await adminApiService.getTables();
-          console.log('Tables loaded:', backendTables.length);
         } catch (error) {
           console.error('Failed to load tables:', error);
           message.error('Failed to load tables');
@@ -91,16 +89,13 @@ const Setting: React.FC = () => {
 
         try {
           backendMenuItems = await adminApiService.getMenuItems();
-          console.log('Menu items loaded:', backendMenuItems.length);
         } catch (error) {
           console.error('Failed to load menu items:', error);
           message.error('Failed to load menu items');
         }
 
         try {
-          console.log('Attempting to load users...');
           backendUsers = await adminApiService.getUsers();
-          console.log('Users loaded successfully:', backendUsers.length, backendUsers);
         } catch (error) {
           console.error('Failed to load users - detailed error:', error);
           if (error instanceof Error) {
@@ -139,11 +134,7 @@ const Setting: React.FC = () => {
           createdAt: user.createdAt,
         }));
 
-        console.log('Setting data:', {
-          tables: frontendTables.length,
-          menuItems: frontendMenuItems.length,
-          staffs: frontendStaffs.length
-        });
+        // Data loaded successfully
 
         setTables(frontendTables);
         setMenuItems(frontendMenuItems);

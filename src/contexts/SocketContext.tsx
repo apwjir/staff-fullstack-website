@@ -1,14 +1,18 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { notification } from 'antd';
 
 interface SocketContextType {
   socket: Socket | null;
   connected: boolean;
+  connecting: boolean;
+  connectionAttempts: number;
+  maxReconnectAttempts: number;
   joinStaff: () => void;
   leaveStaff: () => void;
   sendMessageToTable: (tableId: number, message: string, type: string) => void;
   connectedTables: number[];
+  reconnect: () => void;
 }
 
 interface SocketProviderProps {
@@ -28,210 +32,266 @@ export const useSocket = () => {
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [connectedTables, setConnectedTables] = useState<number[]>([]);
   const [hasJoinedStaff, setHasJoinedStaff] = useState(false);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const maxReconnectAttempts = 10;
+  const reconnectDelay = 2000;
 
-  useEffect(() => {
-    // Connect to WebSocket server
+  const connectSocket = useCallback(() => {
+    if (connecting || (socket && socket.connected)) return;
+
+    setConnecting(true);
+
     const newSocket = io('http://localhost:3000', {
       withCredentials: true,
       transports: ['websocket', 'polling'],
       autoConnect: true,
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnection: false, // Handle manually for better control
+      timeout: 5000,
+      forceNew: true,
     });
 
-    // Connection event handlers
-    newSocket.on('connect', () => {
-      console.log('✅ Connected to WebSocket server:', newSocket.id);
-      setConnected(true);
+    const setupSocketEventHandlers = (socket: Socket) => {
 
-      notification.success({
-        message: 'Connected',
-        description: 'Real-time connection established',
-        placement: 'topRight',
-        duration: 2,
-      });
-    });
+      // Connection event handlers
+      socket.on('connect', () => {
+        setConnected(true);
+        setConnecting(false);
+        setConnectionAttempts(0);
 
-    newSocket.on('disconnect', () => {
-      console.log('❌ Disconnected from WebSocket server');
-      setConnected(false);
+        notification.success({
+          message: 'Connected',
+          description: 'Real-time connection established',
+          placement: 'topRight',
+          duration: 2,
+        });
 
-      notification.warning({
-        message: 'Disconnected',
-        description: 'Real-time connection lost. Attempting to reconnect...',
-        placement: 'topRight',
-        duration: 3,
-      });
-    });
-
-    newSocket.on('connect_error', (error) => {
-      console.error('❌ Connection error:', error);
-      notification.error({
-        message: 'Connection Error',
-        description: 'Failed to establish real-time connection',
-        placement: 'topRight',
-        duration: 4,
-      });
-    });
-
-    // Staff-specific event handlers
-    newSocket.on('joined_staff', (data) => {
-      console.log('👥 Joined staff room:', data);
-      setHasJoinedStaff(true);
-      notification.info({
-        message: 'Staff Mode',
-        description: 'You are now receiving real-time updates',
-        placement: 'topRight',
-        duration: 2,
-      });
-    });
-
-    newSocket.on('connected_tables', (data) => {
-      console.log('🍽️ Connected tables:', data.tables);
-      setConnectedTables(data.tables);
-    });
-
-    // Real-time business event handlers
-    newSocket.on('order_created', (order) => {
-      console.log('📋 New order received:', order);
-      notification.info({
-        message: 'New Order!',
-        description: `Table ${order.tableId} placed a new order (#${order.id})`,
-        placement: 'topRight',
-        duration: 4,
+        // Start ping interval to maintain connection health
+        if (pingIntervalRef.current) {
+          clearInterval(pingIntervalRef.current);
+        }
+        pingIntervalRef.current = setInterval(() => {
+          if (socket.connected) {
+            socket.emit('ping');
+          }
+        }, 30000); // Ping every 30 seconds
       });
 
-      // Trigger a custom event for components to listen to
-      window.dispatchEvent(new CustomEvent('orderCreated', { detail: order }));
-    });
+      socket.on('disconnect', (reason) => {
+        setConnected(false);
+        setConnecting(false);
+        setHasJoinedStaff(false);
 
-    newSocket.on('order_status_updated', (order) => {
-      console.log('📋 Order status updated:', order);
-      notification.info({
-        message: 'Order Updated',
-        description: `Order #${order.id} status: ${order.status}`,
-        placement: 'topRight',
-        duration: 3,
+        if (pingIntervalRef.current) {
+          clearInterval(pingIntervalRef.current);
+          pingIntervalRef.current = null;
+        }
+
+        notification.warning({
+          message: 'Disconnected',
+          description: 'Real-time connection lost. Attempting to reconnect...',
+          placement: 'topRight',
+          duration: 3,
+        });
+
+        // Only attempt reconnect if not manually disconnected
+        if (reason !== 'io client disconnect' && connectionAttempts < maxReconnectAttempts) {
+          scheduleReconnect();
+        }
       });
 
-      window.dispatchEvent(new CustomEvent('orderStatusUpdated', { detail: order }));
-    });
+      socket.on('connect_error', (error) => {
+        setConnecting(false);
 
-    newSocket.on('bill_created', (bill) => {
-      console.log('💰 Bill created:', bill);
-      notification.success({
-        message: 'Bill Created',
-        description: `Bill #${bill.id} for Table ${bill.tableId} - $${bill.totalAmount}`,
-        placement: 'topRight',
-        duration: 4,
+        if (connectionAttempts < maxReconnectAttempts) {
+          scheduleReconnect();
+        } else {
+          notification.error({
+            message: 'Connection Error',
+            description: 'Failed to establish real-time connection after multiple attempts',
+            placement: 'topRight',
+            duration: 4,
+          });
+        }
       });
 
-      window.dispatchEvent(new CustomEvent('billCreated', { detail: bill }));
-    });
-
-    newSocket.on('bill_updated', (bill) => {
-      console.log('💰 Bill updated:', bill);
-      notification.info({
-        message: 'Bill Updated',
-        description: `Bill #${bill.id} updated - $${bill.totalAmount}`,
-        placement: 'topRight',
-        duration: 3,
+      socket.on('pong', () => {
+        // Connection is healthy
       });
 
-      window.dispatchEvent(new CustomEvent('billUpdated', { detail: bill }));
-    });
-
-    newSocket.on('bill_paid', (bill) => {
-      console.log('💰 Bill paid:', bill);
-      notification.success({
-        message: 'Payment Received',
-        description: `Bill #${bill.id} has been paid - $${bill.totalAmount}`,
-        placement: 'topRight',
-        duration: 4,
+      // Staff-specific event handlers
+      socket.on('joined_staff', (data) => {
+        setHasJoinedStaff(true);
+        notification.info({
+          message: 'Staff Mode',
+          description: 'You are now receiving real-time updates',
+          placement: 'topRight',
+          duration: 2,
+        });
       });
 
-      window.dispatchEvent(new CustomEvent('billPaid', { detail: bill }));
-    });
-
-    // Customer interaction handlers
-    newSocket.on('customer_joined_table', (data) => {
-      console.log('👋 Customer joined table:', data);
-      setConnectedTables(prev => [...new Set([...prev, data.tableId])]);
-
-      notification.info({
-        message: 'Customer Activity',
-        description: `Customer joined Table ${data.tableId}`,
-        placement: 'topRight',
-        duration: 3,
-      });
-    });
-
-    newSocket.on('customer_left_table', (data) => {
-      console.log('👋 Customer left table:', data);
-
-      notification.info({
-        message: 'Customer Activity',
-        description: `Customer left Table ${data.tableId}`,
-        placement: 'topRight',
-        duration: 2,
-      });
-    });
-
-    newSocket.on('customer_message', (data) => {
-      console.log('💬 Customer message:', data);
-
-      notification.info({
-        message: `Message from Table ${data.tableId}`,
-        description: data.message,
-        placement: 'topRight',
-        duration: 5,
+      socket.on('connected_tables', (data) => {
+        setConnectedTables(data.tables);
       });
 
-      window.dispatchEvent(new CustomEvent('customerMessage', { detail: data }));
-    });
+      // Real-time business event handlers
+      socket.on('order_created', (order) => {
+        notification.info({
+          message: 'New Order!',
+          description: `Table ${order.tableId} placed a new order (#${order.id})`,
+          placement: 'topRight',
+          duration: 4,
+        });
 
-    // System message handler
-    newSocket.on('system_message', (data) => {
-      console.log('📢 System message:', data);
-
-      const notificationType = data.type === 'error' ? 'error' :
-                              data.type === 'warning' ? 'warning' : 'info';
-
-      notification[notificationType]({
-        message: 'System Notification',
-        description: data.message,
-        placement: 'topRight',
-        duration: 4,
+        // Trigger a custom event for components to listen to
+        window.dispatchEvent(new CustomEvent('orderCreated', { detail: order }));
       });
-    });
 
-    // Error handler
-    newSocket.on('error', (data) => {
-      console.error('🔴 Socket error:', data);
-      notification.error({
-        message: 'Error',
-        description: data.message || 'An error occurred',
-        placement: 'topRight',
-        duration: 4,
+      socket.on('order_status_updated', (order) => {
+        notification.info({
+          message: 'Order Updated',
+          description: `Order #${order.id} status: ${order.status}`,
+          placement: 'topRight',
+          duration: 3,
+        });
+
+        window.dispatchEvent(new CustomEvent('orderStatusUpdated', { detail: order }));
       });
-    });
 
+      socket.on('bill_created', (bill) => {
+        notification.success({
+          message: 'Bill Created',
+          description: `Bill #${bill.id} for Table ${bill.tableId} - $${bill.totalAmount}`,
+          placement: 'topRight',
+          duration: 4,
+        });
+
+        window.dispatchEvent(new CustomEvent('billCreated', { detail: bill }));
+      });
+
+      socket.on('bill_updated', (bill) => {
+        notification.info({
+          message: 'Bill Updated',
+          description: `Bill #${bill.id} updated - $${bill.totalAmount}`,
+          placement: 'topRight',
+          duration: 3,
+        });
+
+        window.dispatchEvent(new CustomEvent('billUpdated', { detail: bill }));
+      });
+
+      socket.on('bill_paid', (bill) => {
+        notification.success({
+          message: 'Payment Received',
+          description: `Bill #${bill.id} has been paid - $${bill.totalAmount}`,
+          placement: 'topRight',
+          duration: 4,
+        });
+
+        window.dispatchEvent(new CustomEvent('billPaid', { detail: bill }));
+      });
+
+      // Customer interaction handlers
+      socket.on('customer_joined_table', (data) => {
+        setConnectedTables(prev => [...new Set([...prev, data.tableId])]);
+
+        notification.info({
+          message: 'Customer Activity',
+          description: `Customer joined Table ${data.tableId}`,
+          placement: 'topRight',
+          duration: 3,
+        });
+
+        window.dispatchEvent(new CustomEvent('tableStatusUpdated', {
+          detail: { tableId: data.tableId, status: 'OCCUPIED' }
+        }));
+      });
+
+      socket.on('customer_left_table', (data) => {
+        notification.info({
+          message: 'Customer Activity',
+          description: `Customer left Table ${data.tableId}`,
+          placement: 'topRight',
+          duration: 2,
+        });
+      });
+
+      socket.on('customer_message', (data) => {
+        notification.info({
+          message: `Message from Table ${data.tableId}`,
+          description: data.message,
+          placement: 'topRight',
+          duration: 5,
+        });
+
+        window.dispatchEvent(new CustomEvent('customerMessage', { detail: data }));
+      });
+
+      // System message handler
+      socket.on('system_message', (data) => {
+        const notificationType = data.type === 'error' ? 'error' :
+                                data.type === 'warning' ? 'warning' : 'info';
+
+        notification[notificationType]({
+          message: 'System Notification',
+          description: data.message,
+          placement: 'topRight',
+          duration: 4,
+        });
+      });
+
+      // Error handler
+      socket.on('error', (data) => {
+        console.error('Socket error:', data.message || 'Unknown error');
+        notification.error({
+          message: 'Error',
+          description: data.message || 'An error occurred',
+          placement: 'topRight',
+          duration: 4,
+        });
+      });
+    };
+
+    setupSocketEventHandlers(newSocket);
     setSocket(newSocket);
+  }, [connecting, socket, connectionAttempts]);
+
+  const scheduleReconnect = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+
+    setConnectionAttempts(prev => prev + 1);
+
+    reconnectTimeoutRef.current = setTimeout(() => {
+      connectSocket();
+    }, reconnectDelay * Math.min(connectionAttempts + 1, 5)); // Exponential backoff
+  }, [connectSocket, connectionAttempts]);
+
+  useEffect(() => {
+    connectSocket();
 
     return () => {
-      console.log('🔌 Cleaning up WebSocket connection');
-      setHasJoinedStaff(false);
-      newSocket.close();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+      }
+      if (socket) {
+        socket.removeAllListeners();
+        socket.close();
+      }
     };
   }, []);
 
   // Auto-join staff room when connected
   useEffect(() => {
     if (socket && connected && !hasJoinedStaff) {
-      console.log('🔄 Auto-joining staff room...');
       socket.emit('join_staff');
     }
   }, [socket, connected, hasJoinedStaff]);
@@ -239,20 +299,17 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   // Helper functions
   const joinStaff = useCallback(() => {
     if (socket && connected && !hasJoinedStaff) {
-      console.log('📞 Manual staff room join requested...');
       socket.emit('join_staff');
-    } else if (hasJoinedStaff) {
-      console.log('ℹ️ Already joined staff room, skipping...');
     }
   }, [socket, connected, hasJoinedStaff]);
 
-  const leaveStaff = () => {
+  const leaveStaff = useCallback(() => {
     if (socket && connected) {
       socket.emit('leave_staff');
     }
-  };
+  }, [socket, connected]);
 
-  const sendMessageToTable = (tableId: number, message: string, type: string = 'info') => {
+  const sendMessageToTable = useCallback((tableId: number, message: string, type: string = 'info') => {
     if (socket && connected) {
       socket.emit('staff_message_to_table', { tableId, message, type });
 
@@ -263,17 +320,30 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         duration: 2,
       });
     }
-  };
+  }, [socket, connected]);
+
+  const reconnect = useCallback(() => {
+    if (socket) {
+      socket.removeAllListeners();
+      socket.close();
+    }
+    setConnectionAttempts(0);
+    connectSocket();
+  }, [socket, connectSocket]);
 
   return (
     <SocketContext.Provider
       value={{
         socket,
         connected,
+        connecting,
+        connectionAttempts,
+        maxReconnectAttempts,
         joinStaff,
         leaveStaff,
         sendMessageToTable,
         connectedTables,
+        reconnect,
       }}
     >
       {children}

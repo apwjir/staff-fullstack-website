@@ -270,7 +270,7 @@ const LoginPage: React.FC = () => {
             </div>
 
             {/* Demo Credentials */}
-            <div style={{
+            {/* <div style={{
               padding: '1rem',
               backgroundColor: '#F9FAFB',
               borderRadius: '6px',
@@ -291,7 +291,7 @@ const LoginPage: React.FC = () => {
               <Text style={{ fontSize: '12px', color: '#6B7280', display: 'block' }}>
                 Staff: staff@restaurant.com / staff123
               </Text>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

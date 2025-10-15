@@ -133,7 +133,7 @@ const AppLayout: React.FC = () => {
 const AppContent: React.FC = () => {
   const { isAuthenticated, loading } = useAuth();
 
-  console.log('App: Auth state - isAuthenticated:', isAuthenticated, 'loading:', loading);
+  // App auth state check
 
   if (loading) {
     return (
