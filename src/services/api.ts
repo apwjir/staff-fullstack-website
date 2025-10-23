@@ -1,6 +1,5 @@
 // API Configuration for Admin Frontend
-const API_BASE_URL = import.meta.env.VITE_API_PROXY_PATH || "/api";
-// const CUSTOMER_FRONTEND_URL = import.meta.env.VITE_CUSTOMER_FRONTEND_URL || 'http://localhost:5173';
+const API_BASE_URL = "/api";
 
 // Types matching backend schema
 export interface MenuItem {
