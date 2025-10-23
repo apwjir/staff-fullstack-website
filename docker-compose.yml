@@ -5,9 +5,7 @@ services:
     container_name: food_ordering_staff_frontend
     environment:
       - NGINX_PROXY=${NGINX_PROXY}
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
-      - VITE_API_PROXY_PATH=${VITE_API_PROXY_PATH}
-      - VITE_CUSTOMER_FRONTEND_URL=${VITE_CUSTOMER_FRONTEND_URL}
+      - CUSTOMER_FRONTEND_URL=${CUSTOMER_FRONTEND_URL}
     ports:
       - '${PORT}:80'
     networks:

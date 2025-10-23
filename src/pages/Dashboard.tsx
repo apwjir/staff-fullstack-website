@@ -393,8 +393,7 @@ export default function Dashboard() {
                 value={
                   selectedTable.qrUrl ||
                   `${
-                    import.meta.env.CUSTOMER_FRONTEND_URL ||
-                    "http://localhost:5173"
+                    import.meta.env.CUSTOMER_FRONTEND_URL
                   }/scan/${selectedTable.qrCodeToken}`
                 }
                 size={250}
