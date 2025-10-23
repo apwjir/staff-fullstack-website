@@ -54,7 +54,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     setConnecting(true);
 
-    const newSocket = io(`${process.env.NGINX_PROXY}`, {
+    const newSocket = io(window.location.origin, {
       withCredentials: true,
       transports: ["websocket", "polling"],
       autoConnect: true,
@@ -62,6 +62,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       timeout: 5000,
       forceNew: true,
     });
+
+    console.log("Connecting to socket at", window.location.origin);
 
     const setupSocketEventHandlers = (socket: Socket) => {
       // Connection event handlers
