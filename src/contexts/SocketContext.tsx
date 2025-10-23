@@ -63,8 +63,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       forceNew: true,
     });
 
-    console.log("Connecting to socket at", window.location.origin);
-
     const setupSocketEventHandlers = (socket: Socket) => {
       // Connection event handlers
       socket.on("connect", () => {
