@@ -572,7 +572,7 @@ const Billing: React.FC = () => {
                                 TOTAL:
                               </Text>
                               <Text strong style={{ fontSize: "16px" }}>
-                                ${selectedBill.totalAmount.toFixed(2)}
+                                ฿{selectedBill.totalAmount.toFixed(2)}
                               </Text>
                             </div>
                           </div>
