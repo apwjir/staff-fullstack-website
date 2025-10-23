@@ -391,10 +391,7 @@ export default function Dashboard() {
               </Title>
               <QRCode
                 value={
-                  selectedTable.qrUrl ||
-                  `${
-                    import.meta.env.CUSTOMER_FRONTEND_URL
-                  }/scan/${selectedTable.qrCodeToken}`
+                  selectedTable.qrUrl || ""
                 }
                 size={250}
               />
